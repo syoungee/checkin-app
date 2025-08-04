@@ -1,0 +1,22 @@
+/* src/pages/CalendarPage.css */
+.calendar-container {
+  position: relative;
+  padding: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  font-size: 32px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
