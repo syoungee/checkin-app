@@ -1,0 +1,199 @@
+/* src/pages/CreateEventPage.css */
+
+/* ===== Theme ===== */
+:root {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --border: #e9e9ef;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --primary: #6b8afd;
+  --primary-weak: rgba(107, 138, 253, 0.12);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+
+/* ===== Layout ===== */
+.container {
+  max-width: 760px;
+  margin: 28px auto 40px;
+  padding: 0 16px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* 카드 느낌 래퍼를 주고 싶다면 .container 안에 다른 래퍼를 쓰세요.
+   여기서는 form 자체를 카드처럼 보이게 처리 */
+.form {
+  display: grid;
+  gap: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+/* 2열 레이아웃: 날짜/시간을 같은 줄에 */
+.form.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* ===== Fields ===== */
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field > span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* 통일된 인풋 스타일 */
+input[type='text'],
+input[type='date'],
+input[type='time'],
+select,
+textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #a0a4ad;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-weak);
+}
+
+/* 날짜/시간이 한 줄에 나란히 보이도록 */
+@media (min-width: 680px) {
+  .row-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+/* ===== Attendees ===== */
+.attendee-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: #fafbff;
+  max-height: 300px;
+  overflow: auto;
+}
+
+/* 스크롤바 살짝 정리(지원 브라우저에서만 적용) */
+.attendee-list::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.attendee-list::-webkit-scrollbar-thumb {
+  background: #d9ddf3;
+  border-radius: 999px;
+}
+
+.attendee-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #fff;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.attendee-item:hover {
+  background: #f7f8ff;
+  border-color: #e5e8ff;
+}
+.attendee-item input[type='checkbox'] {
+  transform: translateY(0.5px);
+}
+
+/* ===== Actions ===== */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.actions > button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #f6f7fb;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.02s ease;
+}
+.actions > button:hover {
+  background: #eef0f8;
+}
+.actions > button:active {
+  transform: translateY(1px);
+}
+
+.actions > button[type='submit'],
+.actions > button.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.actions > button[type='submit']:hover,
+.actions > button.primary:hover {
+  filter: brightness(0.98);
+}
+.actions > button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Helpers ===== */
+.help {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: -2px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 679px) {
+  .form {
+    padding: 14px;
+    gap: 14px;
+  }
+  .attendee-list {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    max-height: 260px;
+  }
+}
