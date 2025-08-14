@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { collection, getDocs, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import './MemberPage.css';
 
-// 한국식 전화번호 표시 포맷팅
+// 한국식 전화번호 표시 포맷팅 (목록 표시 전용)
 const formatPhoneKR = (v) => {
   const d = (v || '').replace(/\D/g, '');
   if (d.startsWith('02')) {
@@ -51,32 +51,45 @@ function MemberPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     if (name === 'phone') {
-      // 숫자만 저장
-      setForm((prev) => ({ ...prev, phone: value.replace(/\D/g, '') }));
+      // 입력값에서 숫자만 남기고 그대로 표시
+      const digits = value.replace(/\D/g, '');
+      setForm((prev) => ({ ...prev, phone: digits }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const canSubmit = form.name.trim() && form.birthdate && form.joinDate && /^\d{9,11}$/.test(form.phone); // 숫자 9~11자리
+  // 숫자만 뽑아서 검사
+  const canSubmit = form.name.trim() && form.birthdate && form.joinDate && /^\d{9,11}$/.test(form.phone.replace(/\D/g, ''));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit || saving) return;
 
-    const phoneExists = members.some((m) => (m.phone || '') === form.phone);
+    // DB 저장 시 중복 체크 (숫자만 비교)
+    const phoneExists = members.some((m) => (m.phone || '') === form.phone.replace(/\D/g, ''));
     if (phoneExists && !window.confirm('동일한 전화번호가 존재합니다. 그래도 등록할까요?')) return;
 
     setSaving(true);
     try {
       await addDoc(collection(db, 'members'), {
         ...form,
+        phone: form.phone.replace(/\D/g, ''), // 숫자만 저장
         exitDate: null,
         points: 0,
         createdAt: serverTimestamp(),
       });
-      setForm({ name: '', birthdate: '', phone: '', activityArea: '', residence: '', joinDate: '' });
+
+      setForm({
+        name: '',
+        birthdate: '',
+        phone: '',
+        activityArea: '',
+        residence: '',
+        joinDate: '',
+      });
       await fetchMembers();
     } catch (error) {
       console.error('등록 실패:', error);
@@ -141,7 +154,7 @@ function MemberPage() {
               title="01012345678 형식으로 입력"
               required
             />
-            <small className={`hint ${/^\d{9,11}$/.test(form.phone) ? 'ok' : ''}`}>숫자만 입력하세요</small>
+            <small className={`hint ${/^\d{9,11}$/.test(form.phone.replace(/\D/g, '')) ? 'ok' : ''}`}>숫자만 입력하세요</small>
           </label>
 
           <label className="field">
@@ -160,7 +173,7 @@ function MemberPage() {
             <input name="residence" value={form.residence} onChange={handleChange} className="inp" placeholder="예) 송파" />
           </label>
 
-          {/* 버튼: 전체 너비 */}
+          {/* 버튼 */}
           <div className="actions">
             <button type="submit" className="btn primary" disabled={!canSubmit || saving}>
               {saving ? '등록 중...' : '등록'}
@@ -168,7 +181,16 @@ function MemberPage() {
             <button
               type="button"
               className="btn"
-              onClick={() => setForm({ name: '', birthdate: '', phone: '', activityArea: '', residence: '', joinDate: '' })}
+              onClick={() =>
+                setForm({
+                  name: '',
+                  birthdate: '',
+                  phone: '',
+                  activityArea: '',
+                  residence: '',
+                  joinDate: '',
+                })
+              }
               disabled={saving}
             >
               초기화
@@ -177,7 +199,7 @@ function MemberPage() {
         </form>
       </section>
 
-      {/* 🔎 검색/정렬 바 */}
+      {/* 검색/정렬 */}
       <div className="mem-tools under-form">
         <input className="inp search" placeholder="이름/전화/지역 검색" value={qText} onChange={(e) => setQText(e.target.value)} />
         <select className="inp select" value={sortKey} onChange={(e) => setSortKey(e.target.value)} aria-label="정렬">
@@ -213,7 +235,7 @@ function MemberPage() {
               </div>
               <div className="mc-row">
                 <span className="label">전화</span>
-                <button type="button" className="linklike" onClick={() => navigator.clipboard?.writeText(m.phone || '')} title="클립보드에 복사">
+                <button type="button" className="linklike" onClick={() => navigator.clipboard?.writeText(formatPhoneKR(m.phone) || '')} title="클립보드에 복사">
                   {formatPhoneKR(m.phone) || '-'}
                 </button>
               </div>
