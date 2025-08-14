@@ -1,0 +1,200 @@
+/* 기본 레이아웃 */
+* {
+  box-sizing: border-box;
+}
+.mem-container {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+.mem-head {
+  margin-bottom: 12px;
+}
+.mem-head h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+/* 카드 & 폼 */
+.card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.grid {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+.grid.fixed-two {
+  grid-template-columns: 1fr 1fr;
+}
+.grid .actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.field > span {
+  font-weight: 600;
+  font-size: 14px;
+  color: #222;
+}
+.inp {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+}
+.inp:focus {
+  outline: none;
+  border-color: #6b8afd;
+  box-shadow: 0 0 0 4px rgba(107, 138, 253, 0.15);
+}
+
+.hint {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.2;
+}
+.hint.ok {
+  color: #2e7d32;
+}
+
+/* 등록 아래의 검색/정렬 바 */
+.mem-tools.under-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0 6px;
+}
+.inp.search {
+  flex: 1 1 320px;
+}
+.inp.select {
+  padding-right: 28px;
+}
+
+/* 버튼 */
+.btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #dcdcdc;
+  background: #fafafa;
+  cursor: pointer;
+}
+.btn:hover {
+  background: #f2f2f2;
+}
+.btn.primary {
+  background: #6b8afd;
+  color: #fff;
+  border-color: #6b8afd;
+}
+.btn.primary:disabled {
+  background: #c6cffd;
+  border-color: #c6cffd;
+  cursor: not-allowed;
+}
+
+/* 목록 */
+.list-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 10px;
+}
+.count {
+  font-size: 14px;
+  color: #666;
+}
+.member-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.member-card {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+}
+.mc-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.mc-name {
+  font-size: 16px;
+}
+.chip {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3f51b5;
+  border: 1px solid #dfe5ff;
+}
+.chip.ghost {
+  background: #f7f7f7;
+  color: #555;
+  border-color: #eee;
+}
+.mc-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  font-size: 14px;
+  padding: 4px 0;
+}
+.label {
+  color: #777;
+}
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #3f51b5;
+  cursor: pointer;
+  text-align: left;
+}
+.linklike:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  padding: 28px;
+  text-align: center;
+  color: #777;
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+}
+
+/* 반응형 */
+@media (max-width: 720px) {
+  .grid.fixed-two {
+    grid-template-columns: 1fr;
+  }
+  .mem-tools.under-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
