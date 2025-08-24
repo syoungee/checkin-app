@@ -1,0 +1,79 @@
+/* src/pages/MemberDetailPage.css */
+
+.member-detail {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.md-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+.card {
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 24px;
+  background: #fff;
+}
+
+.md-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 2px;
+  border-bottom: 1px dashed #f0f0f0;
+}
+.md-row:last-child {
+  border-bottom: 0;
+}
+
+.md-row .label {
+  font-weight: 600;
+  color: #666;
+}
+
+.linklike {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #007aff;
+}
+
+.react-calendar {
+  width: 100%;
+  border: none;
+  font-family: inherit;
+}
+
+.react-calendar__tile {
+  position: relative;
+}
+
+.react-calendar__tile .dot {
+  width: 6px;
+  height: 6px;
+  background: #007aff;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.empty {
+  text-align: center;
+  color: #888;
+  padding: 24px 0;
+}

@@ -1,6 +1,8 @@
+// src/pages/MemberPage.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from './firebase';
 import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import './MemberPage.css';
 
 // 한국식 전화번호 표시 포맷팅 (목록 표시 전용)
@@ -18,10 +20,12 @@ const formatPhoneKR = (v) => {
 };
 
 function MemberPage() {
+  const navigate = useNavigate();
+
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null); // ⬅️ 추가: 삭제 진행 상태
+  const [deletingId, setDeletingId] = useState(null);
 
   // 검색/정렬
   const [qText, setQText] = useState('');
@@ -61,14 +65,12 @@ function MemberPage() {
     }
   };
 
-  // 숫자만 뽑아서 검사
   const canSubmit = form.name.trim() && form.birthdate && form.joinDate && /^\d{9,11}$/.test(form.phone.replace(/\D/g, ''));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit || saving) return;
 
-    // DB 저장 시 중복 체크 (숫자만 비교)
     const phoneExists = members.some((m) => (m.phone || '') === form.phone.replace(/\D/g, ''));
     if (phoneExists && !window.confirm('동일한 전화번호가 존재합니다. 그래도 등록할까요?')) return;
 
@@ -76,7 +78,7 @@ function MemberPage() {
     try {
       await addDoc(collection(db, 'members'), {
         ...form,
-        phone: form.phone.replace(/\D/g, ''), // 숫자만 저장
+        phone: form.phone.replace(/\D/g, ''),
         exitDate: null,
         points: 0,
         createdAt: serverTimestamp(),
@@ -99,7 +101,6 @@ function MemberPage() {
     }
   };
 
-  // ⬇️ 추가: 삭제 핸들러
   const handleDelete = async (id, name) => {
     if (deletingId) return;
     const ok = window.confirm(`${name ? `'${name}' ` : ''}항목을 삭제할까요? 이 동작은 되돌릴 수 없습니다.`);
@@ -107,18 +108,11 @@ function MemberPage() {
 
     try {
       setDeletingId(id);
-
-      // 낙관적 업데이트: 먼저 화면에서 제거
       setMembers((prev) => prev.filter((m) => m.id !== id));
-
-      // Firestore 실제 삭제
       await deleteDoc(doc(db, 'members', id));
-      // 실패 시를 대비해 별도 fetchMembers는 생략(성공 가정),
-      // 필요하면 try 밖에서 fetchMembers 호출 가능
     } catch (err) {
       console.error('삭제 실패:', err);
       alert('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
-      // 실패했으면 목록 복구
       await fetchMembers();
     } finally {
       setDeletingId(null);
@@ -245,18 +239,22 @@ function MemberPage() {
       ) : (
         <ul className="member-grid">
           {viewMembers.map((m) => (
-            <li key={m.id} className="member-card">
+            <li key={m.id} className="member-card clickable" onClick={() => navigate(`/member/${m.id}`)} title={`${m.name} 상세 보기`}>
               <div className="mc-head">
                 <strong className="mc-name">{m.name}</strong>
                 {m.activityArea && <span className="chip">{m.activityArea}</span>}
                 {m.residence && <span className="chip ghost">{m.residence}</span>}
-                {/* ⬇️ 삭제 버튼 */}
+
+                {/* 삭제 버튼: 부모 클릭 전파 방지 */}
                 <button
                   type="button"
                   className="icon-btn danger"
                   aria-label={`${m.name} 삭제`}
                   title="삭제"
-                  onClick={() => handleDelete(m.id, m.name)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(m.id, m.name);
+                  }}
                   disabled={deletingId === m.id}
                 >
                   {deletingId === m.id ? '삭제 중…' : '×'}
@@ -273,7 +271,15 @@ function MemberPage() {
               </div>
               <div className="mc-row">
                 <span className="label">전화</span>
-                <button type="button" className="linklike" onClick={() => navigator.clipboard?.writeText(formatPhoneKR(m.phone) || '')} title="클립보드에 복사">
+                <button
+                  type="button"
+                  className="linklike"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard?.writeText(formatPhoneKR(m.phone) || '');
+                  }}
+                  title="클립보드에 복사"
+                >
                   {formatPhoneKR(m.phone) || '-'}
                 </button>
               </div>

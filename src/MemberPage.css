@@ -228,3 +228,8 @@
 .icon-btn.danger:hover {
   background: #fdecea;
 }
+
+/* 이미 있는 파일 맨 아래 등 적당한 곳에 추가 */
+.member-card.clickable {
+  cursor: pointer;
+}
