@@ -125,10 +125,9 @@ function CalendarPage() {
         </button>
       </div>
 
-      <EventList events={selectedEvents} emptyText="선택한 날짜에 일정이 없습니다." />
-
+      <EventList events={selectedEvents} emptyText="선택한 날짜에 일정이 없습니다." onItemClick={(ev) => navigate(`/event/${ev.id}`)} />
       <h3 style={{ marginTop: 24 }}>이번 달 전체 일정</h3>
-      <EventList events={events} emptyText="이번 달 일정이 없습니다." />
+      <EventList events={events} emptyText="이번 달 일정이 없습니다." onItemClick={(ev) => navigate(`/event/${ev.id}`)} />
     </div>
   );
 }

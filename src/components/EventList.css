@@ -173,3 +173,10 @@
     padding: 3px 8px;
   }
 }
+.ev-item.is-clickable {
+  cursor: pointer;
+}
+.ev-item.is-clickable:hover {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+  border-color: #e5e7eb;
+}

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MemberPage from './MemberPage';
 import CalendarPage from './CalendarPage';
 import CreateEventPage from './CreateEventPage';
+import EditEventPage from './EditEventPage';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<CalendarPage />} />
         <Route path="/members" element={<MemberPage />} />
         <Route path="/create-event" element={<CreateEventPage />} />
+        <Route path="/event/:id" element={<EditEventPage />} />
       </Routes>
     </Router>
   );
