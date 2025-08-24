@@ -20,3 +20,45 @@
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
+
+/* 캘린더 칸 하단에 일정 점 표시 */
+.cal-dot-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+.cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2d7ef7;
+  display: inline-block;
+}
+
+/* 일정 있는 날 테두리 강조(선택) */
+.has-events {
+  position: relative;
+}
+.has-events abbr {
+  /* 날짜 숫자 강조 느낌(선택) */
+  font-weight: 600;
+}
+
+/* 선택 영역 상단 */
+.sel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+.mini-btn {
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.mini-btn:hover {
+  background: #f7f7f7;
+}
