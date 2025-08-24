@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import './MemberPage.css';
 
 // 한국식 전화번호 표시 포맷팅 (목록 표시 전용)
@@ -21,6 +21,7 @@ function MemberPage() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null); // ⬅️ 추가: 삭제 진행 상태
 
   // 검색/정렬
   const [qText, setQText] = useState('');
@@ -40,7 +41,7 @@ function MemberPage() {
     setLoading(true);
     const ref = collection(db, 'members');
     const snap = await getDocs(query(ref, orderBy('createdAt', 'desc')));
-    const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const data = snap.docs.map((doc_) => ({ id: doc_.id, ...doc_.data() }));
     setMembers(data);
     setLoading(false);
   };
@@ -53,7 +54,6 @@ function MemberPage() {
     const { name, value } = e.target;
 
     if (name === 'phone') {
-      // 입력값에서 숫자만 남기고 그대로 표시
       const digits = value.replace(/\D/g, '');
       setForm((prev) => ({ ...prev, phone: digits }));
     } else {
@@ -96,6 +96,32 @@ function MemberPage() {
       alert('등록에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ⬇️ 추가: 삭제 핸들러
+  const handleDelete = async (id, name) => {
+    if (deletingId) return;
+    const ok = window.confirm(`${name ? `'${name}' ` : ''}항목을 삭제할까요? 이 동작은 되돌릴 수 없습니다.`);
+    if (!ok) return;
+
+    try {
+      setDeletingId(id);
+
+      // 낙관적 업데이트: 먼저 화면에서 제거
+      setMembers((prev) => prev.filter((m) => m.id !== id));
+
+      // Firestore 실제 삭제
+      await deleteDoc(doc(db, 'members', id));
+      // 실패 시를 대비해 별도 fetchMembers는 생략(성공 가정),
+      // 필요하면 try 밖에서 fetchMembers 호출 가능
+    } catch (err) {
+      console.error('삭제 실패:', err);
+      alert('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      // 실패했으면 목록 복구
+      await fetchMembers();
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -224,7 +250,19 @@ function MemberPage() {
                 <strong className="mc-name">{m.name}</strong>
                 {m.activityArea && <span className="chip">{m.activityArea}</span>}
                 {m.residence && <span className="chip ghost">{m.residence}</span>}
+                {/* ⬇️ 삭제 버튼 */}
+                <button
+                  type="button"
+                  className="icon-btn danger"
+                  aria-label={`${m.name} 삭제`}
+                  title="삭제"
+                  onClick={() => handleDelete(m.id, m.name)}
+                  disabled={deletingId === m.id}
+                >
+                  {deletingId === m.id ? '삭제 중…' : '×'}
+                </button>
               </div>
+
               <div className="mc-row">
                 <span className="label">생일</span>
                 <span>{m.birthdate || '-'}</span>
