@@ -3,8 +3,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import { db } from './firebase';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import './MemberDetailPage.css';
+
+// ✅ attendanceApi 활용 (조회 전용)
+import { getAttendanceDatesSmart } from './utils/attendanceApi';
 
 /** YYYY-MM-DD */
 function ymd(date) {
@@ -33,21 +36,20 @@ export default function MemberDetailPage() {
   const navigate = useNavigate();
 
   const [member, setMember] = useState(null);
-  const [attendDates, setAttendDates] = useState([]);
+  const [attendDates, setAttendDates] = useState([]); // ['YYYY-MM-DD', ...]
   const [loading, setLoading] = useState(true);
 
   // 멤버 + 출석 불러오기
   useEffect(() => {
     const load = async () => {
       try {
-        const memRef = doc(db, 'members', id);
-        const memSnap = await getDoc(memRef);
+        // 멤버 기본 정보
+        const memSnap = await getDoc(doc(db, 'members', id));
         if (memSnap.exists()) setMember({ id: memSnap.id, ...memSnap.data() });
 
-        // 출석: attendances에서 memberId == id 로 로드 (date: 'YYYY-MM-DD')
-        const qy = query(collection(db, 'attendances'), where('memberId', '==', id));
-        const aSnap = await getDocs(qy);
-        setAttendDates(aSnap.docs.map((d) => d.data().date).filter(Boolean));
+        // ✅ 출석 날짜 조회
+        const dates = await getAttendanceDatesSmart(id);
+        setAttendDates(dates);
       } catch (e) {
         console.error('멤버 상세 로드 실패', e);
       } finally {
@@ -101,7 +103,7 @@ export default function MemberDetailPage() {
         </div>
       </section>
 
-      {/* 캘린더: 출석 날짜 점 표시 */}
+      {/* 캘린더: 출석 날짜 점 표시 (조회 전용) */}
       <h2>출석 기록</h2>
       <Calendar
         locale="ko-KR"
@@ -111,11 +113,15 @@ export default function MemberDetailPage() {
           return attendSet.has(ymd(date)) ? <div className="dot" /> : null;
         }}
       />
-      {/* 필요 시, 하단에 출석일 리스트 (옵션) */}
+
+      {/* 하단: 출석일 리스트 */}
       <ul className="attend-list">
-        {attendDates.sort().map((d) => (
-          <li key={d}>{d}</li>
-        ))}
+        {attendDates
+          .slice()
+          .sort((a, b) => a.localeCompare(b))
+          .map((d) => (
+            <li key={d}>{d}</li>
+          ))}
       </ul>
     </div>
   );
