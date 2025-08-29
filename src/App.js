@@ -1,6 +1,6 @@
-// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomePage from './HomePage';
 import MemberPage from './MemberPage';
 import CalendarPage from './CalendarPage';
 import CreateEventPage from './CreateEventPage';
@@ -11,7 +11,11 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<CalendarPage />} />
+        {/* 메인 */}
+        <Route path="/" element={<HomePage />} />
+
+        {/* 기존 페이지들 */}
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/members" element={<MemberPage />} />
         <Route path="/member/:id" element={<MemberDetailPage />} />
         <Route path="/create-event" element={<CreateEventPage />} />
