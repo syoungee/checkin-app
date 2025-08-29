@@ -1,9 +1,8 @@
-// src/pages/CreateEventPage.js
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import './CreateEventPage.css'; // 선택(스타일은 자유)
+import { collection, getDocs, query, orderBy, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
+import './CreateEventPage.css'; // 선택
 
 export default function CreateEventPage() {
   const { state } = useLocation(); // Calendar에서 넘어온 { date }
@@ -12,6 +11,7 @@ export default function CreateEventPage() {
   // 멤버 목록
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // 폼 상태
   const [form, setForm] = useState({
@@ -26,10 +26,8 @@ export default function CreateEventPage() {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const snap = await getDocs(collection(db, 'members'));
+        const snap = await getDocs(query(collection(db, 'members'), orderBy('name', 'asc')));
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        // 이름 기준 정렬
-        list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         setMembers(list);
       } catch (e) {
         console.error('Failed to load members', e);
@@ -63,6 +61,7 @@ export default function CreateEventPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
 
     if (!form.date) return alert('날짜를 입력하세요.');
     if (!form.time) return alert('시간을 입력하세요.');
@@ -70,32 +69,49 @@ export default function CreateEventPage() {
     if (!form.hostId) return alert('모임장을 선택하세요.');
     if (form.attendees.length === 0) return alert('참석자를 1명 이상 선택하세요.');
 
-    // 모임장이 참석자에 없으면 추가
+    setSaving(true);
+
+    // 모임장이 참석자에 없으면 추가 (참석 수에는 모임장도 포함)
     const attendeesIds = Array.from(new Set([...form.attendees, form.hostId]));
     const attendeesNames = attendeesIds.map((id) => idToName.get(id) || '');
     const hostName = idToName.get(form.hostId) || '';
 
     try {
-      await addDoc(collection(db, 'events'), {
-        // 참조 ID와 이름을 함께 저장 (조회/표시 편의)
+      const batch = writeBatch(db);
+
+      // 1) 이벤트 문서 생성 (배치 set)
+      const eventRef = doc(collection(db, 'events'));
+      batch.set(eventRef, {
         attendeesIds,
         attendeesNames,
         hostId: form.hostId,
         host: hostName,
-
-        // 캡처된 기본 필드 (스크린샷 구조와 맞춤)
-        date: form.date, // "2025-08-04"
-        time: form.time, // "19:10"
-        location: form.location, // "판교 손상원 클라이밍"
-
+        date: form.date, // e.g., "2025-08-04"
+        time: form.time, // e.g., "19:10"
+        location: form.location,
         createdAt: serverTimestamp(),
       });
+
+      // 2) 참석자들의 attendCount +1
+      attendeesIds.forEach((memberId) => {
+        const mRef = doc(db, 'members', memberId);
+        batch.set(mRef, { attendCount: increment(1) }, { merge: true });
+      });
+
+      // 3) 모임장의 hostCount +1 (참석 카운트와 별도로)
+      const hostRef = doc(db, 'members', form.hostId);
+      batch.set(hostRef, { hostCount: increment(1) }, { merge: true });
+
+      // 4) 커밋 (원자적)
+      await batch.commit();
 
       alert('일정이 등록되었습니다.');
       navigate(-1); // 이전 페이지(캘린더)로
     } catch (err) {
       console.error(err);
       alert('등록 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -150,10 +166,12 @@ export default function CreateEventPage() {
         </div>
 
         <div className="actions">
-          <button type="button" onClick={() => navigate(-1)}>
+          <button type="button" onClick={() => navigate(-1)} disabled={saving}>
             취소
           </button>
-          <button type="submit">등록</button>
+          <button type="submit" disabled={saving}>
+            {saving ? '등록 중…' : '등록'}
+          </button>
         </div>
       </form>
     </div>
