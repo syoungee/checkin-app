@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import { db } from './firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import './MemberDetailPage.css';
 
 // ✅ attendanceApi 활용 (조회 전용)
@@ -31,23 +31,51 @@ const formatPhoneKR = (v) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7, 11)}`;
 };
 
+// 성별 옵션
+const GENDER_OPTIONS = [
+  { value: '', label: '선택 안 함' },
+  { value: 'male', label: '남성' },
+  { value: 'female', label: '여성' },
+];
+
 export default function MemberDetailPage() {
-  const { id } = useParams(); // /member/:id
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [member, setMember] = useState(null);
-  const [attendDates, setAttendDates] = useState([]); // ['YYYY-MM-DD', ...]
+  const [attendDates, setAttendDates] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 멤버 + 출석 불러오기
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    birthdate: '',
+    phone: '',
+    joinDate: '',
+    activityArea: '',
+    residence: '',
+    gender: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
   useEffect(() => {
     const load = async () => {
       try {
-        // 멤버 기본 정보
         const memSnap = await getDoc(doc(db, 'members', id));
-        if (memSnap.exists()) setMember({ id: memSnap.id, ...memSnap.data() });
-
-        // ✅ 출석 날짜 조회
+        if (memSnap.exists()) {
+          const data = { id: memSnap.id, ...memSnap.data() };
+          setMember(data);
+          setForm({
+            name: data.name ?? '',
+            birthdate: data.birthdate ?? '',
+            phone: data.phone ?? '',
+            joinDate: data.joinDate ?? '',
+            activityArea: data.activityArea ?? '',
+            residence: data.residence ?? '',
+            gender: data.gender ?? '',
+          });
+        }
         const dates = await getAttendanceDatesSmart(id);
         setAttendDates(dates);
       } catch (e) {
@@ -61,6 +89,60 @@ export default function MemberDetailPage() {
 
   const attendSet = useMemo(() => new Set(attendDates), [attendDates]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'phone') {
+      const digits = value.replace(/\D/g, '');
+      setForm((prev) => ({ ...prev, phone: digits }));
+      return;
+    }
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const canSave = form.name.trim() && form.birthdate && form.joinDate && /^\d{9,11}$/.test((form.phone || '').replace(/\D/g, ''));
+
+  const handleSave = async () => {
+    if (!member || saving || !canSave) return;
+    setSaving(true);
+    setMsg('');
+    try {
+      const ref = doc(db, 'members', member.id);
+      await updateDoc(ref, {
+        name: form.name.trim(),
+        birthdate: form.birthdate,
+        phone: (form.phone || '').replace(/\D/g, ''),
+        joinDate: form.joinDate,
+        activityArea: form.activityArea || '',
+        residence: form.residence || '',
+        gender: form.gender || '',
+      });
+      setMember({ ...member, ...form, phone: (form.phone || '').replace(/\D/g, '') });
+      setIsEditing(false);
+      setMsg('저장되었습니다.');
+      setTimeout(() => setMsg(''), 2000);
+    } catch (e) {
+      console.error(e);
+      setMsg('저장 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (!member) return;
+    setForm({
+      name: member.name ?? '',
+      birthdate: member.birthdate ?? '',
+      phone: member.phone ?? '',
+      joinDate: member.joinDate ?? '',
+      activityArea: member.activityArea ?? '',
+      residence: member.residence ?? '',
+      gender: member.gender ?? '',
+    });
+    setIsEditing(false);
+    setMsg('');
+  };
+
   if (loading) return <div className="empty">불러오는 중…</div>;
   if (!member) return <div className="empty">존재하지 않는 멤버입니다.</div>;
 
@@ -71,53 +153,124 @@ export default function MemberDetailPage() {
           ← 목록으로
         </button>
         <h1>{member.name} 님 정보</h1>
+        <div className="right">
+          {!isEditing ? (
+            <button className="btn" onClick={() => setIsEditing(true)}>
+              수정
+            </button>
+          ) : (
+            <>
+              <button className="btn" onClick={handleCancel} disabled={saving}>
+                취소
+              </button>
+              <button className="btn primary" onClick={handleSave} disabled={!canSave || saving}>
+                {saving ? '저장 중…' : '저장'}
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
-      {/* 인적사항 카드 */}
       <section className="card">
+        {/* 이름 */}
         <div className="md-row">
           <span className="label">이름</span>
-          <span>{member.name || '-'}</span>
+          {!isEditing ? <span>{member.name || '-'}</span> : <input className="inp" name="name" value={form.name} onChange={handleChange} required />}
         </div>
+
+        {/* 생년월일 */}
         <div className="md-row">
           <span className="label">생년월일</span>
-          <span>{member.birthdate || '-'}</span>
+          {!isEditing ? (
+            <span>{member.birthdate || '-'}</span>
+          ) : (
+            <input className="inp" type="date" name="birthdate" value={form.birthdate} onChange={handleChange} required />
+          )}
         </div>
+
+        {/* 전화번호 */}
         <div className="md-row">
           <span className="label">전화번호</span>
-          <button type="button" className="linklike" onClick={() => navigator.clipboard?.writeText(formatPhoneKR(member.phone) || '')} title="전화번호 복사">
-            {formatPhoneKR(member.phone) || '-'}
-          </button>
+          {!isEditing ? (
+            <button type="button" className="linklike" onClick={() => navigator.clipboard?.writeText(formatPhoneKR(member.phone) || '')}>
+              {formatPhoneKR(member.phone) || '-'}
+            </button>
+          ) : (
+            <div className="inline-controls">
+              <input
+                className="inp"
+                name="phone"
+                inputMode="tel"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="01012345678"
+                pattern="\d{9,11}"
+                title="숫자 9~11자리"
+                required
+              />
+              <small className={`hint ${/^\d{9,11}$/.test((form.phone || '').replace(/\D/g, '')) ? 'ok' : ''}`}>숫자만 입력</small>
+            </div>
+          )}
         </div>
+
+        {/* 가입일 */}
         <div className="md-row">
           <span className="label">가입일</span>
-          <span>{member.joinDate || '-'}</span>
+          {!isEditing ? (
+            <span>{member.joinDate || '-'}</span>
+          ) : (
+            <input className="inp" type="date" name="joinDate" value={form.joinDate} onChange={handleChange} required />
+          )}
         </div>
+
+        {/* 활동 지역 */}
         <div className="md-row">
           <span className="label">활동 지역</span>
-          <span>{member.activityArea || '-'}</span>
+          {!isEditing ? (
+            <span>{member.activityArea || '-'}</span>
+          ) : (
+            <input className="inp" name="activityArea" value={form.activityArea} onChange={handleChange} />
+          )}
         </div>
+
+        {/* 거주 지역 */}
         <div className="md-row">
           <span className="label">거주 지역</span>
-          <span>{member.residence || '-'}</span>
+          {!isEditing ? <span>{member.residence || '-'}</span> : <input className="inp" name="residence" value={form.residence} onChange={handleChange} />}
         </div>
+
+        {/* 성별 */}
+        <div className="md-row">
+          <span className="label">성별</span>
+          {!isEditing ? (
+            <span>{member.gender === 'male' ? '남성' : member.gender === 'female' ? '여성' : '-'}</span>
+          ) : (
+            <select className="inp" name="gender" value={form.gender} onChange={handleChange}>
+              {GENDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {msg && (
+          <div className="hint" style={{ marginTop: 8 }}>
+            {msg}
+          </div>
+        )}
       </section>
 
-      {/* 캘린더: 출석 날짜 점 표시 (조회 전용) */}
       <h2>출석 기록</h2>
       <Calendar
         locale="ko-KR"
         calendarType="gregory"
-        tileContent={({ date, view }) => {
-          if (view !== 'month') return null;
-          return attendSet.has(ymd(date)) ? <div className="dot" /> : null;
-        }}
+        tileContent={({ date, view }) => (view === 'month' && attendSet.has(ymd(date)) ? <div className="dot" /> : null)}
       />
 
-      {/* 하단: 출석일 리스트 */}
       <ul className="attend-list">
         {attendDates
-          .slice()
           .sort((a, b) => a.localeCompare(b))
           .map((d) => (
             <li key={d}>{d}</li>
