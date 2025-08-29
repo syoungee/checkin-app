@@ -6,6 +6,7 @@ import CalendarPage from './CalendarPage';
 import CreateEventPage from './CreateEventPage';
 import MemberDetailPage from './MemberDetailPage';
 import EditEventPage from './EditEventPage';
+import AwardsPage from './AwardsPage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/member/:id" element={<MemberDetailPage />} />
         <Route path="/create-event" element={<CreateEventPage />} />
         <Route path="/event/:id" element={<EditEventPage />} />
+        <Route path="/awards" element={<AwardsPage />} />
       </Routes>
     </Router>
   );

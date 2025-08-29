@@ -1,0 +1,154 @@
+.awards {
+  max-width: 980px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+
+.aw-head h1 {
+  margin: 0;
+  font-size: 28px;
+}
+.aw-head .sub {
+  color: #6b7280;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-top: 14px;
+}
+
+.sec-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+/* 기간 선택 영역 */
+.range-side .range-summary {
+  display: grid;
+  gap: 8px;
+  background: #fafafa;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #eee;
+}
+.range-side .quick-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.lbl {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  color: #374151;
+}
+.inp {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+}
+.hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #dcdcdc;
+  background: #fafafa;
+  cursor: pointer;
+}
+.btn.ghost {
+  background: #fff;
+}
+
+.award {
+  margin-top: 14px;
+}
+.award-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #eee;
+  border-radius: 12px;
+}
+.rank li {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px dashed #f1f1f1;
+}
+.rank li:last-child {
+  border-bottom: 0;
+}
+.rank-n {
+  font-weight: 700;
+  color: #64748b;
+}
+.rank-name {
+  font-weight: 600;
+}
+.rank-count {
+  color: #334155;
+}
+
+.event-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.event-item {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+.e-line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.e-meta {
+  color: #6b7280;
+  font-size: 14px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dot {
+  opacity: 0.6;
+}
+.chip {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3f51b5;
+  border: 1px solid #dfe5ff;
+}
+
+/* 반응형 */
+@media (max-width: 720px) {
+  .range-side {
+    display: grid;
+    gap: 12px;
+  }
+}
