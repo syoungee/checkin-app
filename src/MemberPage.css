@@ -74,18 +74,53 @@
   color: #2e7d32;
 }
 
-/* 등록 아래의 검색/정렬 바 */
+/* ====== 필터 바(검색/정렬/필터) ====== */
+/* 그리드 카드형 + 버튼 짤림 방지 */
 .mem-tools.under-form {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns:
+    minmax(260px, 1.6fr) /* 검색 */
+    minmax(140px, 0.9fr) /* 정렬 */
+    minmax(160px, 1fr) /* 활동 지역 */
+    minmax(160px, 1fr) /* 거주 지역 */
+    minmax(140px, 0.8fr) /* 성별 */
+    max-content; /* ✅ 초기화 버튼(내용만큼) */
+  gap: 10px;
   align-items: center;
+
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
   margin: 16px 0 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
 .inp.search {
-  flex: 1 1 320px;
+  flex: 1 1 320px; /* 데스크탑에서 여유 폭 */
 }
 .inp.select {
   padding-right: 28px;
+  appearance: none; /* 네이티브 화살표 최소화 */
+  background-image: linear-gradient(45deg, transparent 50%, #888 50%), linear-gradient(135deg, #888 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+.mem-tools.under-form .inp {
+  min-height: 40px;
+}
+.mem-tools.under-form .btn {
+  min-height: 40px;
+}
+.mem-tools.under-form .btn:last-child {
+  justify-self: end; /* 우측 정렬 */
+  white-space: nowrap; /* ✅ 줄바꿈 방지 */
+  width: max-content; /* ✅ 내용 너비만큼 확보 */
+  padding-inline: 12px;
+}
+.mem-tools.under-form .inp::placeholder {
+  color: #9aa0a6;
 }
 
 /* 버튼 */
@@ -189,27 +224,48 @@
 }
 
 /* 반응형 */
-/* 기존 스타일은 그대로 두고 모바일에서만 변경 */
+/* 태블릿 이하에서 컬럼 수 줄이기 */
+@media (max-width: 1024px) {
+  .mem-tools.under-form {
+    grid-template-columns:
+      minmax(220px, 1.5fr) /* 검색 */
+      minmax(140px, 1fr) /* 정렬 */
+      minmax(160px, 1fr) /* 활동 */
+      minmax(160px, 1fr) /* 거주 */
+      minmax(140px, 1fr) /* 성별 */
+      max-content; /* ✅ 버튼은 내용만큼 */
+    gap: 8px;
+  }
+}
+
+/* 모바일: 세로 스택 */
 @media (max-width: 720px) {
   .grid.fixed-two {
     grid-template-columns: 1fr;
   }
 
-  /* 검색/정렬 바 세로 배치 */
   .mem-tools.under-form {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
     gap: 6px;
+    padding: 10px;
   }
 
-  /* 검색창과 드롭다운이 각각 한 줄 차지 */
+  /* 검색창/드롭다운/버튼 한 줄씩 */
   .mem-tools.under-form .inp.search,
-  .mem-tools.under-form .inp.select {
-    flex: none;
+  .mem-tools.under-form .inp.select,
+  .mem-tools.under-form .inp,
+  .mem-tools.under-form .btn {
+    width: 100%;
+    justify-self: stretch;
+  }
+  .mem-tools.under-form .btn:last-child {
+    justify-self: stretch; /* 모바일은 가로 꽉 차게 */
+    white-space: normal;
     width: 100%;
   }
 }
 
+/* 아이콘 버튼 */
 .icon-btn {
   margin-left: auto;
   border: 0;
@@ -220,16 +276,14 @@
   font-size: 18px; /* X 크기 */
   line-height: 1;
 }
-
 .icon-btn.danger {
   color: #c0392b;
 }
-
 .icon-btn.danger:hover {
   background: #fdecea;
 }
 
-/* 이미 있는 파일 맨 아래 등 적당한 곳에 추가 */
+/* 카드 클릭 가능 */
 .member-card.clickable {
   cursor: pointer;
 }

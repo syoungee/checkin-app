@@ -31,6 +31,11 @@ function MemberPage() {
   const [qText, setQText] = useState('');
   const [sortKey, setSortKey] = useState('joinDateDesc');
 
+  // ✅ 필터 상태
+  const [fActivity, setFActivity] = useState(''); // 부분일치(대소문자 무시)
+  const [fResidence, setFResidence] = useState(''); // 부분일치(대소문자 무시)
+  const [fGender, setFGender] = useState(''); // 정확히 일치 '' | 'male' | 'female'
+
   // 폼
   const [form, setForm] = useState({
     name: '',
@@ -126,12 +131,38 @@ function MemberPage() {
     }
   };
 
-  // 검색 & 정렬
+  // 검색 & 정렬 & 필터
   const viewMembers = useMemo(() => {
+    const qLower = qText.toLowerCase().trim();
+    const aLower = fActivity.toLowerCase().trim();
+    const rLower = fResidence.toLowerCase().trim();
+
     const filtered = members.filter((m) => {
+      // 1) 검색어: 이름/전화/활동/거주 포함
       const key = `${m.name ?? ''} ${m.phone ?? ''} ${m.activityArea ?? ''} ${m.residence ?? ''}`.toLowerCase();
-      return key.includes(qText.toLowerCase());
+      if (qLower && !key.includes(qLower)) return false;
+
+      // 2) 활동지역 필터: 부분일치
+      if (aLower) {
+        const val = (m.activityArea ?? '').toString().toLowerCase();
+        if (!val.includes(aLower)) return false;
+      }
+
+      // 3) 거주지역 필터: 부분일치
+      if (rLower) {
+        const val = (m.residence ?? '').toString().toLowerCase();
+        if (!val.includes(rLower)) return false;
+      }
+
+      // 4) 성별 필터: 정확히 일치
+      if (fGender) {
+        if ((m.gender ?? '') !== fGender) return false;
+      }
+
+      return true;
     });
+
+    // 정렬
     if (sortKey === 'nameAsc') {
       filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     } else {
@@ -145,7 +176,13 @@ function MemberPage() {
       });
     }
     return filtered;
-  }, [members, qText, sortKey]);
+  }, [members, qText, sortKey, fActivity, fResidence, fGender]);
+
+  const clearFilters = () => {
+    setFActivity('');
+    setFResidence('');
+    setFGender('');
+  };
 
   return (
     <div className="mem-container">
@@ -237,13 +274,27 @@ function MemberPage() {
         </form>
       </section>
 
-      {/* 검색/정렬 */}
+      {/* 검색/정렬 + ✅ 필터 */}
       <div className="mem-tools under-form">
         <input className="inp search" placeholder="이름/전화/지역 검색" value={qText} onChange={(e) => setQText(e.target.value)} />
+
         <select className="inp select" value={sortKey} onChange={(e) => setSortKey(e.target.value)} aria-label="정렬">
           <option value="joinDateDesc">가입일 최신순</option>
           <option value="nameAsc">이름 가나다순</option>
         </select>
+
+        {/* 필터: 활동/거주(부분일치), 성별(정확히 일치) */}
+        <input className="inp" placeholder="활동 지역 필터 (예: 판교)" value={fActivity} onChange={(e) => setFActivity(e.target.value)} />
+        <input className="inp" placeholder="거주 지역 필터 (예: 송파)" value={fResidence} onChange={(e) => setFResidence(e.target.value)} />
+        <select className="inp select" value={fGender} onChange={(e) => setFGender(e.target.value)} aria-label="성별 필터">
+          <option value="">성별 전체</option>
+          <option value="male">남성만</option>
+          <option value="female">여성만</option>
+        </select>
+
+        <button type="button" className="btn" onClick={clearFilters}>
+          필터 초기화
+        </button>
       </div>
 
       <h2 className="list-title">
@@ -253,7 +304,7 @@ function MemberPage() {
       {loading ? (
         <div className="empty">목록을 불러오는 중…</div>
       ) : viewMembers.length === 0 ? (
-        <div className="empty">검색 결과가 없습니다.</div>
+        <div className="empty">검색/필터 결과가 없습니다.</div>
       ) : (
         <ul className="member-grid">
           {viewMembers.map((m) => (
