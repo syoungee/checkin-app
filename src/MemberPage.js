@@ -39,6 +39,7 @@ function MemberPage() {
     activityArea: '',
     residence: '',
     joinDate: '',
+    gender: '', // ✅ 성별 추가
   });
 
   const fetchMembers = async () => {
@@ -65,7 +66,12 @@ function MemberPage() {
     }
   };
 
-  const canSubmit = form.name.trim() && form.birthdate && form.joinDate && /^\d{9,11}$/.test(form.phone.replace(/\D/g, ''));
+  const canSubmit =
+    form.name.trim() &&
+    form.birthdate &&
+    form.joinDate &&
+    form.gender && // ✅ 성별 선택 필수
+    /^\d{9,11}$/.test(form.phone.replace(/\D/g, ''));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -91,6 +97,7 @@ function MemberPage() {
         activityArea: '',
         residence: '',
         joinDate: '',
+        gender: '', // ✅ 초기화
       });
       await fetchMembers();
     } catch (error) {
@@ -193,6 +200,16 @@ function MemberPage() {
             <input name="residence" value={form.residence} onChange={handleChange} className="inp" placeholder="예) 송파" />
           </label>
 
+          {/* 4행: 성별 */}
+          <label className="field">
+            <span>성별 *</span>
+            <select name="gender" value={form.gender} onChange={handleChange} className="inp" required>
+              <option value="">선택</option>
+              <option value="male">남성</option>
+              <option value="female">여성</option>
+            </select>
+          </label>
+
           {/* 버튼 */}
           <div className="actions">
             <button type="submit" className="btn primary" disabled={!canSubmit || saving}>
@@ -209,6 +226,7 @@ function MemberPage() {
                   activityArea: '',
                   residence: '',
                   joinDate: '',
+                  gender: '',
                 })
               }
               disabled={saving}
@@ -282,6 +300,10 @@ function MemberPage() {
                 >
                   {formatPhoneKR(m.phone) || '-'}
                 </button>
+              </div>
+              <div className="mc-row">
+                <span className="label">성별</span>
+                <span>{m.gender === 'male' ? '남성' : m.gender === 'female' ? '여성' : '-'}</span>
               </div>
             </li>
           ))}
