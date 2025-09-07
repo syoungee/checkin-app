@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import { db } from './firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './MemberDetailPage.css';
 
 // ✅ attendanceApi 활용 (조회 전용)
@@ -38,6 +38,15 @@ const GENDER_OPTIONS = [
   { value: 'female', label: '여성' },
 ];
 
+// ✅ 상태(영문 enum) <-> 화면 라벨
+const STATUS_OPTIONS = [
+  { value: 'active', label: '정상' },
+  { value: 'new', label: '신규' },
+  { value: 'injured', label: '부상' },
+  { value: 'withdrawn', label: '탈퇴' },
+];
+const statusLabel = (v) => STATUS_OPTIONS.find((o) => o.value === v)?.label ?? '-';
+
 export default function MemberDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -55,6 +64,10 @@ export default function MemberDetailPage() {
     activityArea: '',
     residence: '',
     gender: '',
+    // ✅ 추가 필드
+    status: 'active', // 기본값: active(정상)
+    memo: '', // 비고란
+    exitDate: null, // 탈퇴일(선택)
   });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
@@ -74,6 +87,9 @@ export default function MemberDetailPage() {
             activityArea: data.activityArea ?? '',
             residence: data.residence ?? '',
             gender: data.gender ?? '',
+            status: data.status ?? 'active', // 없으면 기본 active
+            memo: data.memo ?? '',
+            exitDate: data.exitDate ?? null,
           });
         }
         const dates = await getAttendanceDatesSmart(id);
@@ -107,7 +123,9 @@ export default function MemberDetailPage() {
     setMsg('');
     try {
       const ref = doc(db, 'members', member.id);
-      await updateDoc(ref, {
+
+      // ✅ status 변경 감지 → statusUpdatedAt 갱신 / exitDate 자동 처리
+      const updates = {
         name: form.name.trim(),
         birthdate: form.birthdate,
         phone: (form.phone || '').replace(/\D/g, ''),
@@ -115,8 +133,29 @@ export default function MemberDetailPage() {
         activityArea: form.activityArea || '',
         residence: form.residence || '',
         gender: form.gender || '',
-      });
-      setMember({ ...member, ...form, phone: (form.phone || '').replace(/\D/g, '') });
+        memo: form.memo || '',
+        status: form.status || 'active',
+      };
+
+      const prevStatus = member.status ?? 'active';
+      const nextStatus = form.status ?? 'active';
+      if (prevStatus !== nextStatus) {
+        updates.statusUpdatedAt = serverTimestamp();
+      }
+
+      // 탈퇴 → exitDate 자동 지정, 탈퇴 해제 → exitDate 비우기
+      if (nextStatus === 'withdrawn') {
+        updates.exitDate = form.exitDate || ymd(new Date());
+      } else if (prevStatus === 'withdrawn' && nextStatus !== 'withdrawn') {
+        updates.exitDate = null;
+      } else {
+        // 수동으로 폼에서 변경한 값 반영(선택)
+        updates.exitDate = form.exitDate ?? null;
+      }
+
+      await updateDoc(ref, updates);
+
+      setMember({ ...member, ...updates, phone: updates.phone });
       setIsEditing(false);
       setMsg('저장되었습니다.');
       setTimeout(() => setMsg(''), 2000);
@@ -138,6 +177,9 @@ export default function MemberDetailPage() {
       activityArea: member.activityArea ?? '',
       residence: member.residence ?? '',
       gender: member.gender ?? '',
+      status: member.status ?? 'active',
+      memo: member.memo ?? '',
+      exitDate: member.exitDate ?? null,
     });
     setIsEditing(false);
     setMsg('');
@@ -252,6 +294,42 @@ export default function MemberDetailPage() {
                 </option>
               ))}
             </select>
+          )}
+        </div>
+
+        {/* ✅ 상태 */}
+        <div className="md-row">
+          <span className="label">상태</span>
+          {!isEditing ? (
+            <span className={`badge ${member.status || 'active'}`}>{statusLabel(member.status ?? 'active')}</span>
+          ) : (
+            <select className="inp" name="status" value={form.status} onChange={handleChange}>
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* ✅ 탈퇴일(선택) */}
+        <div className="md-row">
+          <span className="label">탈퇴일</span>
+          {!isEditing ? (
+            <span>{member.exitDate || '-'}</span>
+          ) : (
+            <input className="inp" type="date" name="exitDate" value={form.exitDate || ''} onChange={handleChange} disabled={form.status !== 'withdrawn'} />
+          )}
+        </div>
+
+        {/* ✅ 비고(memo) */}
+        <div className="md-row">
+          <span className="label">비고</span>
+          {!isEditing ? (
+            <span>{member.memo || '-'}</span>
+          ) : (
+            <textarea className="inp" name="memo" value={form.memo} onChange={handleChange} placeholder="부상/탈퇴 사유 등 메모" rows={3} />
           )}
         </div>
 
