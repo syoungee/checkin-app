@@ -1,5 +1,5 @@
 /* =============================
-   CalendarPage.css (full file)
+   CalendarPage.css
    iOS-like, responsive, no overlap
    ============================= */
 
@@ -7,24 +7,22 @@
 .calendar-container.ios {
   position: relative;
   padding: 12px 16px 16px;
-  max-width: 720px; /* tablet / small desktop default */
+  max-width: 720px;
   margin: 0 auto;
   background: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
 }
 
-/* -----------------------------
-   Responsive sizing tokens
-   ----------------------------- */
+/* Sizing tokens for calendar */
 .react-calendar {
-  /* base (tablet/small desktop) */
-  --abbr-size: 28px; /* date circle diameter */
-  --tile-pad-y: 10px; /* top padding */
-  --tile-pad-b: 34px; /* bottom padding (space for badges) */
+  --abbr-size: 28px;
+  --tile-pad-y: 10px;
+  --tile-pad-b: 34px;
   --badge-gap: 4px;
   --badge-fs: 11px;
   --badge-py: 2px;
   --badge-px: 6px;
-  --active-border: 2px; /* selected tile border width */
+  --active-border: 2px;
 }
 
 /* Mobile ≤ 480px */
@@ -37,13 +35,12 @@
   .react-calendar {
     --abbr-size: 26px;
     --tile-pad-y: 8px;
-    --tile-pad-b: 40px; /* extra space for up to 2 badge rows */
+    --tile-pad-b: 44px;
     --badge-gap: 4px;
     --badge-fs: 10px;
     --badge-py: 2px;
     --badge-px: 6px;
   }
-  /* show at most 2 badges on mobile (others hidden) */
   .ios-badges .ios-badge:nth-child(n + 3) {
     display: none;
   }
@@ -61,16 +58,14 @@
   }
 }
 
-/* -----------------------------
-   Custom header (one-line)
-   ----------------------------- */
+/* Header */
 .cal-header.oneline {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px; /* <  Title  > spacing */
-  margin-bottom: 6px;
-  white-space: nowrap; /* prevent wrap */
+  gap: 14px;
+  margin-bottom: 8px;
+  white-space: nowrap;
 }
 .cal-title {
   font-size: 22px;
@@ -91,7 +86,7 @@
   justify-content: center;
   font-size: 22px;
   line-height: 1;
-  color: #ff3b30; /* iOS system red-ish */
+  color: #ff3b30;
   cursor: pointer;
   padding: 0;
 }
@@ -113,21 +108,15 @@
   }
 }
 
-/* -----------------------------
-   react-calendar base overrides
-   ----------------------------- */
+/* Calendar overrides */
 .react-calendar {
   width: 100%;
   border: 0 !important;
   background: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
 }
-/* hide built-in navigation (we use custom header) */
 .react-calendar__navigation {
   display: none;
 }
-
-/* Weekday header */
 .react-calendar__month-view__weekdays {
   text-align: center;
   font-size: 12px;
@@ -139,13 +128,9 @@
 .react-calendar__month-view__weekdays abbr {
   text-decoration: none;
 }
-
-/* Week rows vertical spacing */
 .react-calendar__month-view__days > .react-calendar__tile {
   margin-top: 4px;
 }
-
-/* Day tile */
 .react-calendar__tile {
   padding: var(--tile-pad-y) 6px var(--tile-pad-b);
   border: none !important;
@@ -155,13 +140,11 @@
   border-radius: 10px;
   position: relative;
   transition: background 0.15s ease;
-  min-height: calc(var(--abbr-size) + var(--tile-pad-y) + var(--tile-pad-b)); /* anti-overlap */
+  min-height: calc(var(--abbr-size) + var(--tile-pad-y) + var(--tile-pad-b));
 }
 .react-calendar__tile:enabled:hover {
   background: #f7f7f7;
 }
-
-/* Day number (abbr) as circle */
 .react-calendar__tile abbr {
   display: inline-flex;
   width: var(--abbr-size);
@@ -171,17 +154,13 @@
   border-radius: 999px;
   font-weight: 700;
   color: #111;
-  z-index: 1; /* above badges */
+  z-index: 1;
   position: relative;
 }
-
-/* Today: red circle */
 .react-calendar__tile--now abbr {
   background: #ff3b30;
   color: #fff !important;
 }
-
-/* Selected day: full tile border (no circle fill) */
 .react-calendar__tile--active {
   background: #fef2f2 !important;
   border: var(--active-border) solid #ff3b30 !important;
@@ -192,20 +171,15 @@
   color: #000 !important;
   font-weight: 800;
 }
-/* Today + selected → keep only the square border */
 .react-calendar__tile--now.react-calendar__tile--active abbr {
   background: transparent !important;
   color: #000 !important;
 }
-
-/* Days with events: slightly bolder number */
 .has-events abbr {
   font-weight: 800;
 }
 
-/* -----------------------------
-   In-tile event badges (location)
-   ----------------------------- */
+/* In-tile badges */
 .ios-badges {
   position: absolute;
   left: 6px;
@@ -214,8 +188,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--badge-gap);
-  pointer-events: none; /* don't block day clicks */
-  z-index: 0; /* under date number */
+  pointer-events: none;
+  z-index: 0;
 }
 .ios-badge {
   display: inline-flex;
@@ -224,8 +198,8 @@
   font-size: var(--badge-fs);
   line-height: 1.2;
   border-radius: 8px;
-  background: #fde8ea; /* light pink */
-  color: #b4232c; /* dark pink text */
+  background: #fde8ea;
+  color: #b4232c;
   border: 1px solid #f8cfd4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -237,9 +211,92 @@
   border-color: #e0e7ff;
 }
 
-/* -----------------------------
-   Selected-day section header
-   ----------------------------- */
+/* ===== Filters (below calendar) ===== */
+.event-filters.below {
+  margin-top: 10px;
+}
+
+/* 동일 폭 + 동일 높이(36px) */
+.event-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr)); /* 모임장/참여자/위치/날짜 동일폭 */
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* 공통 인풋 높이 */
+.event-filters .inp {
+  height: 36px; /* ← 고정 높이 */
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+/* date 인풋도 동일한 라인 높이로 */
+.event-filters .inp.inp-date {
+  appearance: none;
+  -webkit-appearance: none;
+  line-height: 1; /* 아이콘과 텍스트 정렬 */
+  padding-right: 10px;
+}
+
+/* WebKit 계열 date 보정 */
+.event-filters .inp.inp-date::-webkit-date-and-time-value {
+  text-align: left;
+}
+.event-filters .inp.inp-date::-webkit-calendar-picker-indicator {
+  margin: 0 2px 0 0;
+}
+
+/* 포커스 상태 */
+.event-filters .inp:focus {
+  outline: none;
+  border-color: #6b8afd;
+  box-shadow: 0 0 0 4px rgba(107, 138, 253, 0.15);
+}
+
+/* 우측 정렬 버튼 */
+.filter-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+.mini-btn.ghost {
+  border: 1px solid #e5e5ea;
+  background: #fafafa;
+  color: #333;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mini-btn.ghost:hover {
+  background: #f2f2f2;
+}
+
+/* 640px 이상 동일폭 유지 */
+@media (min-width: 640px) {
+  .event-filters {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 모바일(<=480px): 한 줄씩 세로 스택 */
+@media (max-width: 480px) {
+  .event-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Selected-day section */
 .sel-header {
   display: flex;
   align-items: center;
@@ -264,18 +321,7 @@
   background: #f5f5f7;
 }
 
-@media (max-width: 480px) {
-  .react-calendar {
-    --abbr-size: 26px;
-    --tile-pad-y: 8px;
-    --tile-pad-b: 44px; /* 40 → 44 로 살짝 여유 */
-  }
-  /* 모바일에선 뱃지 2개까지만 보이게 유지 */
-  .ios-badges .ios-badge:nth-child(n + 3) {
-    display: none;
-  }
-}
-
+/* 모바일: 요일 헤더 숨김 */
 @media (max-width: 480px) {
   .react-calendar__month-view__weekdays {
     display: none;

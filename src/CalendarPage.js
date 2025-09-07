@@ -1,4 +1,3 @@
-// src/pages/CalendarPage.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
@@ -14,7 +13,6 @@ function ymd(date) {
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
-
 function monthRange(date) {
   const y = date.getFullYear();
   const m = date.getMonth();
@@ -22,48 +20,64 @@ function monthRange(date) {
   const end = new Date(y, m + 1, 0);
   return { start: ymd(start), end: ymd(end) };
 }
-
-/** 장소 라벨 (캘린더 타일 뱃지 텍스트) */
 function labelOf(ev) {
   const txt = (ev.location || '').trim();
   return txt || '일정';
 }
-
-/** 모바일 미디어쿼리 훅 */
-function useMedia(query) {
-  const getMatch = () => (window.matchMedia ? window.matchMedia(query).matches : false);
+function useMedia(queryStr) {
+  const getMatch = () => (window.matchMedia ? window.matchMedia(queryStr).matches : false);
   const [matches, setMatches] = React.useState(getMatch);
   useEffect(() => {
     if (!window.matchMedia) return;
-    const mql = window.matchMedia(query);
+    const mql = window.matchMedia(queryStr);
     const onChange = (e) => setMatches(e.matches);
     mql.addEventListener ? mql.addEventListener('change', onChange) : mql.addListener(onChange);
     return () => {
       mql.removeEventListener ? mql.removeEventListener('change', onChange) : mql.removeListener(onChange);
     };
-  }, [query]);
+  }, [queryStr]);
   return matches;
 }
+const includesCI = (source, needle) => {
+  if (!needle) return true;
+  const n = needle.toLowerCase().trim();
+  if (!n) return true;
+  if (Array.isArray(source))
+    return source.some((x) =>
+      String(x ?? '')
+        .toLowerCase()
+        .includes(n)
+    );
+  return String(source ?? '')
+    .toLowerCase()
+    .includes(n);
+};
 
 export default function CalendarPage() {
   const navigate = useNavigate();
   const isMobile = useMedia('(max-width: 480px)');
 
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activeMonthDate, setActiveMonthDate] = useState(new Date()); // 상단 타이틀/로딩 기준
-  const [events, setEvents] = useState([]); // 현재 달 전체 일정
+  const [activeMonthDate, setActiveMonthDate] = useState(new Date());
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // 🔎 검색 필터 (단일 날짜)
+  const [qLeader, setQLeader] = useState('');
+  const [qMember, setQMember] = useState('');
+  const [qLocation, setQLocation] = useState('');
+  const [qDate, setQDate] = useState(''); // YYYY-MM-DD
 
   // 월 단위 로드
   const loadEventsForMonth = useCallback(async (baseDate) => {
     setLoading(true);
     try {
       const { start, end } = monthRange(baseDate);
-      // date: 'YYYY-MM-DD' 문자열 범위 쿼리
       const qy = query(collection(db, 'events'), where('date', '>=', start), where('date', '<=', end), orderBy('date'), orderBy('time'));
       const snap = await getDocs(qy);
       const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setEvents(list);
+      setQDate(''); // 달 바뀌면 날짜 필터 초기화
     } catch (e) {
       console.error('이벤트 로드 실패', e);
     } finally {
@@ -75,29 +89,17 @@ export default function CalendarPage() {
     loadEventsForMonth(activeMonthDate);
   }, [activeMonthDate, loadEventsForMonth]);
 
-  // 날짜별 그룹핑
   const eventsByDate = useMemo(() => {
     const map = {};
-    for (const ev of events) {
-      const key = ev.date;
-      if (!map[key]) map[key] = [];
-      map[key].push(ev);
-    }
+    for (const ev of events) (map[ev.date] ||= []).push(ev);
     return map;
   }, [events]);
 
-  // 네비게이션(상단 좌/우)
-  const goPrevMonth = () => {
-    setActiveMonthDate(new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth() - 1, 1));
-  };
-  const goNextMonth = () => {
-    setActiveMonthDate(new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth() + 1, 1));
-  };
+  const goPrevMonth = () => setActiveMonthDate(new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth() - 1, 1));
+  const goNextMonth = () => setActiveMonthDate(new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth() + 1, 1));
 
   const selectedKey = ymd(selectedDate);
-  const selectedEvents = eventsByDate[selectedKey] || [];
 
-  // 일정 생성 이동
   const goCreate = () => {
     const yyyy = selectedDate.getFullYear();
     const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -105,9 +107,31 @@ export default function CalendarPage() {
     navigate('/create-event', { state: { date: `${yyyy}-${mm}-${dd}` } });
   };
 
+  // ✅ 월 전체에서 필터 적용
+  const filteredMonthEvents = useMemo(() => {
+    return events.filter((ev) => {
+      if (qDate && ev.date !== qDate) return false;
+      const leaderVal = ev.leader ?? ev.host ?? ev.hostName ?? ev.manager ?? ev.owner ?? '';
+      if (!includesCI(leaderVal, qLeader)) return false;
+      const memberField = ev.attendees ?? ev.participants ?? ev.members ?? ev.memberNames ?? ev.joiners ?? [];
+      if (!includesCI(memberField, qMember)) return false;
+      if (!includesCI(ev.location, qLocation)) return false;
+      return true;
+    });
+  }, [events, qLeader, qMember, qLocation, qDate]);
+
+  const anyFilterOn = (qLeader && qLeader.trim()) || (qMember && qMember.trim()) || (qLocation && qLocation.trim()) || (qDate && qDate.trim());
+
+  const resetFilters = () => {
+    setQLeader('');
+    setQMember('');
+    setQLocation('');
+    setQDate('');
+  };
+
   return (
     <div className="calendar-container ios">
-      {/* iOS 스타일 상단 헤더 (한 줄, 크게) */}
+      {/* 상단 헤더 */}
       <div className="cal-header oneline">
         <button type="button" className="cal-nav" aria-label="이전 달" onClick={goPrevMonth}>
           ‹
@@ -120,6 +144,7 @@ export default function CalendarPage() {
         </button>
       </div>
 
+      {/* 달력 */}
       <Calendar
         onChange={setSelectedDate}
         value={selectedDate}
@@ -129,22 +154,18 @@ export default function CalendarPage() {
           if (view === 'month' && activeStartDate) setActiveMonthDate(activeStartDate);
         }}
         formatShortWeekday={(l, d) => ['일', '월', '화', '수', '목', '금', '토'][d.getDay()]}
-        /* 모바일에선 '일' 접미사 없이 숫자만 */
         formatDay={(locale, date) => (isMobile ? String(date.getDate()) : new Intl.DateTimeFormat('ko-KR', { day: 'numeric' }).format(date))}
         nextLabel={null}
         prevLabel={null}
         next2Label={null}
         prev2Label={null}
-        // 날짜 칸 아래 iOS 뱃지들
         tileContent={({ date, view }) => {
           if (view !== 'month') return null;
           const key = ymd(date);
           const dayEvents = eventsByDate[key] || [];
           if (!dayEvents.length) return null;
-
           const shown = dayEvents.slice(0, 3);
           const more = dayEvents.length - shown.length;
-
           return (
             <div className="ios-badges">
               {shown.map((ev) => (
@@ -163,6 +184,21 @@ export default function CalendarPage() {
         }}
       />
 
+      {/* 🔎 필터 바 (달력 아래) */}
+      <div className="event-filters below">
+        <input className="inp" placeholder="모임장 검색 (예: 홍길동)" value={qLeader} onChange={(e) => setQLeader(e.target.value)} />
+        <input className="inp" placeholder="참여자 검색 (예: 김민수)" value={qMember} onChange={(e) => setQMember(e.target.value)} />
+        <input className="inp" placeholder="위치 검색 (예: 잠실)" value={qLocation} onChange={(e) => setQLocation(e.target.value)} />
+        {/* 라벨 텍스트 없이 날짜만 */}
+        <input type="date" className="inp inp-date" value={qDate} onChange={(e) => setQDate(e.target.value)} placeholder="YYYY-MM-DD" />
+        <div className="filter-actions">
+          <button type="button" className="mini-btn ghost" onClick={resetFilters}>
+            초기화
+          </button>
+        </div>
+      </div>
+
+      {/* 선택일 섹션 */}
       <div className="sel-header">
         <h3>
           {selectedKey} 일정 {loading ? '(불러오는 중...)' : ''}
@@ -171,11 +207,16 @@ export default function CalendarPage() {
           + 일정 등록
         </button>
       </div>
+      <EventList events={eventsByDate[selectedKey] || []} emptyText="선택한 날짜에 일정이 없습니다." onItemClick={(ev) => navigate(`/event/${ev.id}`)} />
 
-      <EventList events={selectedEvents} emptyText="선택한 날짜에 일정이 없습니다." onItemClick={(ev) => navigate(`/event/${ev.id}`)} />
-
-      <h3 style={{ marginTop: 24 }}>이번 달 전체 일정</h3>
-      <EventList events={events} emptyText="이번 달 일정이 없습니다." onItemClick={(ev) => navigate(`/event/${ev.id}`)} />
+      <h3 style={{ marginTop: 24 }}>
+        {anyFilterOn ? '검색 결과' : '이번 달 전체 일정'} ({filteredMonthEvents.length}건)
+      </h3>
+      <EventList
+        events={filteredMonthEvents}
+        emptyText={anyFilterOn ? '검색 조건에 맞는 일정이 없습니다.' : '이번 달 일정이 없습니다.'}
+        onItemClick={(ev) => navigate(`/event/${ev.id}`)}
+      />
     </div>
   );
 }
