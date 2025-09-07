@@ -37,13 +37,14 @@ function MemberPage() {
 
   // 검색/정렬
   const [qText, setQText] = useState('');
-  // ✅ 기본 정렬을 "이름 가나다순"으로
+  // ✅ 기본 정렬: 이름 가나다순
   const [sortKey, setSortKey] = useState('nameAsc');
 
   // ✅ 필터 상태
   const [fActivity, setFActivity] = useState(''); // 부분일치(대소문자 무시)
   const [fResidence, setFResidence] = useState(''); // 부분일치(대소문자 무시)
-  const [fGender, setFGender] = useState(''); // 정확히 일치 '' | 'male' | 'female'
+  const [fGender, setFGender] = useState(''); // '' | 'male' | 'female'
+  const [fStatus, setFStatus] = useState(''); // '' | 'active' | 'new' | 'injured' | 'withdrawn'
 
   // 폼
   const [form, setForm] = useState({
@@ -53,13 +54,13 @@ function MemberPage() {
     activityArea: '',
     residence: '',
     joinDate: '',
-    gender: '', // ✅ 성별 추가
+    gender: '',
   });
 
   const fetchMembers = async () => {
     setLoading(true);
     const ref = collection(db, 'members');
-    // 서버에서 createdAt desc로 가져오되, 화면 기본 정렬은 아래 useMemo에서 이름 오름차순 처리
+    // 서버는 createdAt desc로 가져오고, 화면에서 기본정렬(nameAsc) 적용
     const snap = await getDocs(query(ref, orderBy('createdAt', 'desc')));
     const data = snap.docs.map((doc_) => ({ id: doc_.id, ...doc_.data() }));
     setMembers(data);
@@ -72,7 +73,6 @@ function MemberPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     if (name === 'phone') {
       const digits = value.replace(/\D/g, '');
       setForm((prev) => ({ ...prev, phone: digits }));
@@ -81,12 +81,7 @@ function MemberPage() {
     }
   };
 
-  const canSubmit =
-    form.name.trim() &&
-    form.birthdate &&
-    form.joinDate &&
-    form.gender && // ✅ 성별 선택 필수
-    /^\d{9,11}$/.test(form.phone.replace(/\D/g, ''));
+  const canSubmit = form.name.trim() && form.birthdate && form.joinDate && form.gender && /^\d{9,11}$/.test(form.phone.replace(/\D/g, ''));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,10 +95,9 @@ function MemberPage() {
       await addDoc(collection(db, 'members'), {
         ...form,
         phone: form.phone.replace(/\D/g, ''),
-        // ✅ 상태 기본값 및 메타 필드
-        status: 'active', // 기본값: 정상
-        statusUpdatedAt: serverTimestamp(), // 최초 생성 시점
-        memo: '', // 비고 기본 빈 문자열
+        status: 'active',
+        statusUpdatedAt: serverTimestamp(),
+        memo: '',
         exitDate: null,
         points: 0,
         createdAt: serverTimestamp(),
@@ -173,16 +167,19 @@ function MemberPage() {
         if ((m.gender ?? '') !== fGender) return false;
       }
 
+      // 5) ✅ 상태 필터: 정확히 일치
+      if (fStatus) {
+        if ((m.status ?? 'active') !== fStatus) return false;
+      }
+
       return true;
     });
 
     // 정렬
     if (sortKey === 'nameAsc') {
-      // 클라이언트에서 로케일 정렬(가나다)
       const collator = new Intl.Collator('ko');
       filtered.sort((a, b) => collator.compare(a.name || '', b.name || ''));
     } else {
-      // 가입일 최신순 (joinDate → createdAt seconds 보조)
       filtered.sort((a, b) => {
         const ad = a.joinDate || '';
         const bd = b.joinDate || '';
@@ -193,12 +190,13 @@ function MemberPage() {
       });
     }
     return filtered;
-  }, [members, qText, sortKey, fActivity, fResidence, fGender]);
+  }, [members, qText, sortKey, fActivity, fResidence, fGender, fStatus]);
 
   const clearFilters = () => {
     setFActivity('');
     setFResidence('');
     setFGender('');
+    setFStatus('');
   };
 
   return (
@@ -300,13 +298,23 @@ function MemberPage() {
           <option value="joinDateDesc">가입일 최신순</option>
         </select>
 
-        {/* 필터: 활동/거주(부분일치), 성별(정확히 일치) */}
+        {/* 필터: 활동/거주(부분일치), 성별/상태(정확히 일치) */}
         <input className="inp" placeholder="활동 지역 필터 (예: 판교)" value={fActivity} onChange={(e) => setFActivity(e.target.value)} />
         <input className="inp" placeholder="거주 지역 필터 (예: 송파)" value={fResidence} onChange={(e) => setFResidence(e.target.value)} />
+
         <select className="inp select" value={fGender} onChange={(e) => setFGender(e.target.value)} aria-label="성별 필터">
           <option value="">성별 전체</option>
           <option value="male">남성만</option>
           <option value="female">여성만</option>
+        </select>
+
+        {/* ✅ 상태 필터 */}
+        <select className="inp select" value={fStatus} onChange={(e) => setFStatus(e.target.value)} aria-label="상태 필터">
+          <option value="">상태 전체</option>
+          <option value="active">정상</option>
+          <option value="new">신규</option>
+          <option value="injured">부상</option>
+          <option value="withdrawn">탈퇴</option>
         </select>
 
         <button type="button" className="btn" onClick={clearFilters}>
@@ -329,7 +337,7 @@ function MemberPage() {
               <div className="mc-head">
                 <strong className="mc-name">{m.name}</strong>
 
-                {/* ✅ 상태 뱃지 */}
+                {/* 상태 뱃지 */}
                 <span className={`badge status-${m.status || 'active'}`}>{STATUS_LABELS[m.status] ?? '정상'}</span>
 
                 {m.activityArea && <span className="chip">{m.activityArea}</span>}
