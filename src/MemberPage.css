@@ -287,3 +287,49 @@
 .member-card.clickable {
   cursor: pointer;
 }
+
+/* ===== 상태 뱃지 ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+/* 정상(active): 파란-청록 */
+.status-active {
+  color: #0b5;
+  background: #e8fbf2;
+  border-color: #bdf2d8;
+}
+
+/* 신규(new): 초록 */
+.status-new {
+  color: #2e7d32;
+  background: #eaf7ec;
+  border-color: #cbe9cf;
+}
+
+/* 부상(injured): 주황 */
+.status-injured {
+  color: #b65b00;
+  background: #fff3e6;
+  border-color: #ffd8ad;
+}
+
+/* 탈퇴(withdrawn): 회색 */
+.status-withdrawn {
+  color: #6b7280;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+/* 뱃지 옆칩과 간격 자연스럽게 */
+.mc-head .badge {
+  margin-left: 2px;
+}

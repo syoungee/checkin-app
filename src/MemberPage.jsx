@@ -19,6 +19,14 @@ const formatPhoneKR = (v) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7, 11)}`;
 };
 
+// 상태 라벨 맵 (영문 값 → 한글 표시)
+const STATUS_LABELS = {
+  active: '정상',
+  new: '신규',
+  injured: '부상',
+  withdrawn: '탈퇴',
+};
+
 function MemberPage() {
   const navigate = useNavigate();
 
@@ -29,7 +37,8 @@ function MemberPage() {
 
   // 검색/정렬
   const [qText, setQText] = useState('');
-  const [sortKey, setSortKey] = useState('joinDateDesc');
+  // ✅ 기본 정렬을 "이름 가나다순"으로
+  const [sortKey, setSortKey] = useState('nameAsc');
 
   // ✅ 필터 상태
   const [fActivity, setFActivity] = useState(''); // 부분일치(대소문자 무시)
@@ -50,6 +59,7 @@ function MemberPage() {
   const fetchMembers = async () => {
     setLoading(true);
     const ref = collection(db, 'members');
+    // 서버에서 createdAt desc로 가져오되, 화면 기본 정렬은 아래 useMemo에서 이름 오름차순 처리
     const snap = await getDocs(query(ref, orderBy('createdAt', 'desc')));
     const data = snap.docs.map((doc_) => ({ id: doc_.id, ...doc_.data() }));
     setMembers(data);
@@ -90,6 +100,10 @@ function MemberPage() {
       await addDoc(collection(db, 'members'), {
         ...form,
         phone: form.phone.replace(/\D/g, ''),
+        // ✅ 상태 기본값 및 메타 필드
+        status: 'active', // 기본값: 정상
+        statusUpdatedAt: serverTimestamp(), // 최초 생성 시점
+        memo: '', // 비고 기본 빈 문자열
         exitDate: null,
         points: 0,
         createdAt: serverTimestamp(),
@@ -102,7 +116,7 @@ function MemberPage() {
         activityArea: '',
         residence: '',
         joinDate: '',
-        gender: '', // ✅ 초기화
+        gender: '',
       });
       await fetchMembers();
     } catch (error) {
@@ -164,8 +178,11 @@ function MemberPage() {
 
     // 정렬
     if (sortKey === 'nameAsc') {
-      filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      // 클라이언트에서 로케일 정렬(가나다)
+      const collator = new Intl.Collator('ko');
+      filtered.sort((a, b) => collator.compare(a.name || '', b.name || ''));
     } else {
+      // 가입일 최신순 (joinDate → createdAt seconds 보조)
       filtered.sort((a, b) => {
         const ad = a.joinDate || '';
         const bd = b.joinDate || '';
@@ -279,8 +296,8 @@ function MemberPage() {
         <input className="inp search" placeholder="이름/전화/지역 검색" value={qText} onChange={(e) => setQText(e.target.value)} />
 
         <select className="inp select" value={sortKey} onChange={(e) => setSortKey(e.target.value)} aria-label="정렬">
-          <option value="joinDateDesc">가입일 최신순</option>
           <option value="nameAsc">이름 가나다순</option>
+          <option value="joinDateDesc">가입일 최신순</option>
         </select>
 
         {/* 필터: 활동/거주(부분일치), 성별(정확히 일치) */}
@@ -311,6 +328,10 @@ function MemberPage() {
             <li key={m.id} className="member-card clickable" onClick={() => navigate(`/member/${m.id}`)} title={`${m.name} 상세 보기`}>
               <div className="mc-head">
                 <strong className="mc-name">{m.name}</strong>
+
+                {/* ✅ 상태 뱃지 */}
+                <span className={`badge status-${m.status || 'active'}`}>{STATUS_LABELS[m.status] ?? '정상'}</span>
+
                 {m.activityArea && <span className="chip">{m.activityArea}</span>}
                 {m.residence && <span className="chip ghost">{m.residence}</span>}
 
