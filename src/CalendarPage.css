@@ -117,6 +117,7 @@
 .react-calendar__navigation {
   display: none;
 }
+
 .react-calendar__month-view__weekdays {
   text-align: center;
   font-size: 12px;
@@ -128,9 +129,11 @@
 .react-calendar__month-view__weekdays abbr {
   text-decoration: none;
 }
+
 .react-calendar__month-view__days > .react-calendar__tile {
   margin-top: 4px;
 }
+
 .react-calendar__tile {
   padding: var(--tile-pad-y) 6px var(--tile-pad-b);
   border: none !important;
@@ -141,10 +144,12 @@
   position: relative;
   transition: background 0.15s ease;
   min-height: calc(var(--abbr-size) + var(--tile-pad-y) + var(--tile-pad-b));
+  overflow: visible; /* 툴팁이 타일 밖으로 나와도 보이게 */
 }
 .react-calendar__tile:enabled:hover {
   background: #f7f7f7;
 }
+
 .react-calendar__tile abbr {
   display: inline-flex;
   width: var(--abbr-size);
@@ -188,7 +193,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--badge-gap);
-  pointer-events: none;
+  pointer-events: none; /* 클릭 통과 */
   z-index: 0;
 }
 .ios-badge {
@@ -204,6 +209,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  pointer-events: auto; /* 개별 배지는 hover 허용 */
 }
 .ios-badge.more {
   background: #eef2ff;
@@ -211,12 +217,42 @@
   border-color: #e0e7ff;
 }
 
+/* ----- 배지 Hover 툴팁 ----- */
+.ios-badge.tip {
+  position: relative;
+}
+.ios-badge.tip:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  transform: translateY(-6px);
+  white-space: nowrap;
+  background: rgba(17, 24, 39, 0.96);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.ios-badge.tip:hover::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  bottom: calc(100% - 2px);
+  border: 6px solid transparent;
+  border-top-color: rgba(17, 24, 39, 0.96);
+  z-index: 11;
+}
+
 /* ===== Filters (below calendar) ===== */
 .event-filters.below {
   margin-top: 10px;
 }
 
-/* 동일 폭 + 동일 높이(36px) */
+/* 동일 폭, 카드형 + 높이 통일 */
 .event-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(160px, 1fr)); /* 모임장/참여자/위치/날짜 동일폭 */
@@ -227,43 +263,27 @@
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
-
-/* 공통 인풋 높이 */
 .event-filters .inp {
-  height: 36px; /* ← 고정 높이 */
-  min-height: 36px;
+  min-height: 38px; /* 모든 인풋 동일 높이 */
   padding: 8px 10px;
   border: 1px solid #e2e2e2;
   border-radius: 10px;
   font-size: 14px;
   background: #fff;
-  box-sizing: border-box;
 }
-
-/* date 인풋도 동일한 라인 높이로 */
-.event-filters .inp.inp-date {
-  appearance: none;
-  -webkit-appearance: none;
-  line-height: 1; /* 아이콘과 텍스트 정렬 */
-  padding-right: 10px;
-}
-
-/* WebKit 계열 date 보정 */
-.event-filters .inp.inp-date::-webkit-date-and-time-value {
-  text-align: left;
-}
-.event-filters .inp.inp-date::-webkit-calendar-picker-indicator {
-  margin: 0 2px 0 0;
-}
-
-/* 포커스 상태 */
 .event-filters .inp:focus {
   outline: none;
   border-color: #6b8afd;
   box-shadow: 0 0 0 4px rgba(107, 138, 253, 0.15);
 }
+/* 날짜 인풋도 동일한 높이/스타일 */
+.inp-date {
+  appearance: none;
+  -webkit-appearance: none;
+  line-height: 1.2;
+}
 
-/* 우측 정렬 버튼 */
+/* 우측 정렬 버튼 (전체 너비 차지) */
 .filter-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -282,14 +302,14 @@
   background: #f2f2f2;
 }
 
-/* 640px 이상 동일폭 유지 */
+/* 640px 이상: 동일폭 유지 */
 @media (min-width: 640px) {
   .event-filters {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/* 모바일(<=480px): 한 줄씩 세로 스택 */
+/* 모바일(<=480px): 한 줄씩 */
 @media (max-width: 480px) {
   .event-filters {
     grid-template-columns: 1fr;
