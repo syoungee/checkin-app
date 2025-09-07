@@ -4,8 +4,6 @@ import Calendar from 'react-calendar';
 import { db } from './firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './MemberDetailPage.css';
-
-// ✅ attendanceApi 활용 (조회 전용)
 import { getAttendanceDatesSmart } from './utils/attendanceApi';
 
 /** YYYY-MM-DD */
@@ -46,9 +44,28 @@ const STATUS_OPTIONS = [
 ];
 const statusLabel = (v) => STATUS_OPTIONS.find((o) => o.value === v)?.label ?? '-';
 
+/** 모바일 여부 탐지 훅 (브레이크포인트 720px) */
+function useIsMobile(breakpoint = 720) {
+  const getMatch = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia(`(max-width:${breakpoint}px)`).matches;
+
+  const [isMobile, setIsMobile] = useState(getMatch());
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia(`(max-width:${breakpoint}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 export default function MemberDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const isMobile = useIsMobile(720);
 
   const [member, setMember] = useState(null);
   const [attendDates, setAttendDates] = useState([]);
@@ -201,7 +218,7 @@ export default function MemberDetailPage() {
     setMsg('');
   };
 
-  // ✅ 전화번호 복사
+  // ✅ 전화번호 복사 토스트
   const copyPhone = async () => {
     const text = formatPhoneKR(member?.phone) || '';
     try {
@@ -277,7 +294,6 @@ export default function MemberDetailPage() {
 
       {/* ===== 상세 정보 ===== */}
       <section className="card">
-        {/* 이름 */}
         <div className="md-row">
           <span className="label">이름</span>
           {!isEditing ? (
@@ -287,7 +303,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 생년월일 */}
         <div className="md-row">
           <span className="label">생년월일</span>
           {!isEditing ? (
@@ -297,7 +312,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 전화번호 */}
         <div className="md-row">
           <span className="label">전화번호</span>
           {!isEditing ? (
@@ -326,7 +340,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 가입일 */}
         <div className="md-row">
           <span className="label">가입일</span>
           {!isEditing ? (
@@ -336,7 +349,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 활동 지역 */}
         <div className="md-row">
           <span className="label">활동 지역</span>
           {!isEditing ? (
@@ -346,7 +358,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 거주 지역 */}
         <div className="md-row">
           <span className="label">거주 지역</span>
           {!isEditing ? (
@@ -356,7 +367,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 성별 */}
         <div className="md-row">
           <span className="label">성별</span>
           {!isEditing ? (
@@ -372,7 +382,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 상태 */}
         <div className="md-row">
           <span className="label">상태</span>
           {!isEditing ? (
@@ -388,7 +397,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 탈퇴일 */}
         <div className="md-row">
           <span className="label">탈퇴일</span>
           {!isEditing ? (
@@ -398,7 +406,6 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 비고 */}
         <div className="md-row">
           <span className="label">비고</span>
           {!isEditing ? (
@@ -437,10 +444,13 @@ export default function MemberDetailPage() {
           activeStartDate={activeMonth}
           onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setActiveMonth(activeStartDate)}
           showNavigation={false}
+          // ✅ 모바일에서는 '1일' → '1'처럼 숫자만 표시
+          formatDay={isMobile ? (_, date) => String(date.getDate()) : undefined}
           tileContent={({ date, view }) => (view === 'month' && attendSet.has(ymd(date)) ? <div className="dot" /> : null)}
         />
       </div>
 
+      {/* 모바일: 한 줄 스크롤, 데스크톱: 그리드 */}
       <ul className="attend-list">
         {filteredAttendDates.length > 0 ? filteredAttendDates.map((d) => <li key={d}>{d}</li>) : <li className="muted">해당 달 출석 기록이 없어요</li>}
       </ul>

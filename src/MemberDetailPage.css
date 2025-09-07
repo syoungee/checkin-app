@@ -6,7 +6,7 @@
   --bg: #fafafa;
   --primary: #007aff;
   --radius: 12px;
-  --font: 14px; /* ✅ 본문 폰트 통일 */
+  --font: 14px;
 }
 
 html,
@@ -37,14 +37,13 @@ body {
 .page-title {
   margin: 0;
   text-align: center;
-  font-size: 18px; /* 제목만 살짝 키움 */
+  font-size: 18px;
   font-weight: 700;
 }
 .right {
   justify-self: end;
 }
 
-/* ✅ 목록으로 버튼: 링크 느낌 */
 .back-btn {
   appearance: none;
   -webkit-appearance: none;
@@ -69,9 +68,6 @@ body {
 .back-btn:hover {
   background: #f2f4f8;
   color: var(--fg);
-}
-.back-btn:active {
-  transform: translateY(0.5px);
 }
 .back-btn:focus-visible {
   outline: none;
@@ -167,7 +163,7 @@ body {
   background: #f2f7ff;
 }
 
-/* ===== 상태 배지(2글자도 딱 맞게) ===== */
+/* ===== 상태 배지 ===== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -277,7 +273,8 @@ body {
   transform: translateX(-50%);
 }
 
-/* ===== 리스트 ===== */
+/* ===== 출석 리스트 ===== */
+/* 데스크톱: 그리드 */
 .attend-list {
   margin: 12px 0 24px;
   padding: 0;
@@ -286,6 +283,27 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 6px 12px;
   color: var(--muted);
+}
+
+/* 모바일: 한 줄 가로 스크롤로 전환 */
+@media (max-width: 720px) {
+  .attend-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+  }
+  .attend-list li {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--fg);
+    flex: 0 0 auto;
+  }
 }
 
 /* ===== empty ===== */
