@@ -17,6 +17,7 @@ export default function EditEventPage() {
     date: '', // YYYY-MM-DD
     time: '', // HH:mm
     location: '',
+    imageUrl: '', // ✅ 추가: 이미지 URL(문자열)
     attendees: [], // member ids
     hostId: '',
   });
@@ -41,6 +42,7 @@ export default function EditEventPage() {
           date: ev.date || '',
           time: ev.time || '',
           location: ev.location || '',
+          imageUrl: ev.imageUrl || '', // ✅ 기존 값 주입
           attendees: ev.attendeesIds || [],
           hostId: ev.hostId || '',
         });
@@ -82,6 +84,7 @@ export default function EditEventPage() {
     if (!form.hostId) return alert('모임장을 선택하세요.');
     if (form.attendees.length === 0) return alert('참석자를 1명 이상 선택하세요.');
 
+    // 참석자에 host 자동 포함
     const attendeesIds = Array.from(new Set([...form.attendees, form.hostId]));
     const attendeesNames = attendeesIds.map((mid) => idToName.get(mid) || '');
     const hostName = idToName.get(form.hostId) || '';
@@ -96,6 +99,7 @@ export default function EditEventPage() {
         date: form.date,
         time: form.time,
         location: form.location,
+        imageUrl: form.imageUrl ?? '', // ✅ 문자열 그대로 저장 (빈 값이면 '')
         updatedAt: serverTimestamp(),
       });
       alert('수정되었습니다.');
@@ -114,7 +118,7 @@ export default function EditEventPage() {
     try {
       await deleteDoc(doc(db, 'events', id));
       alert('삭제되었습니다.');
-      navigate('/'); // 캘린더 경로에 맞게 수정
+      navigate('/'); // 캘린더 경로에 맞게 조정
     } catch (err) {
       console.error(err);
       alert('삭제 중 오류가 발생했습니다.');
@@ -149,6 +153,12 @@ export default function EditEventPage() {
         <label className="field">
           <span>장소</span>
           <input type="text" name="location" placeholder="장소를 입력하세요" value={form.location} onChange={handleChange} required />
+        </label>
+
+        {/* ✅ 이미지 URL 텍스트 입력 (장소와 동일한 방식으로 저장) */}
+        <label className="field">
+          <span>이미지 URL</span>
+          <input type="url" name="imageUrl" placeholder="https:// 예) 이미지 주소" value={form.imageUrl} onChange={handleChange} />
         </label>
 
         <div className="field">
@@ -186,7 +196,7 @@ export default function EditEventPage() {
             삭제
           </button>
           <button type="submit" disabled={saving}>
-            저장
+            {saving ? '저장 중…' : '저장'}
           </button>
         </div>
       </form>
