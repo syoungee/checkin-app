@@ -12,6 +12,9 @@
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   --radius: 14px;
   --radius-sm: 10px;
+
+  --danger: #e5484d;
+  --danger-weak: rgba(229, 72, 77, 0.12);
 }
 
 /* ===== Layout ===== */
@@ -28,8 +31,7 @@ h2 {
   color: var(--text);
 }
 
-/* 카드 느낌 래퍼를 주고 싶다면 .container 안에 다른 래퍼를 쓰세요.
-   여기서는 form 자체를 카드처럼 보이게 처리 */
+/* 카드 느낌 래퍼 */
 .form {
   display: grid;
   gap: 18px;
@@ -62,6 +64,7 @@ h2 {
 input[type='text'],
 input[type='date'],
 input[type='time'],
+input[type='url'],
 select,
 textarea {
   width: 100%;
@@ -97,7 +100,90 @@ textarea:focus {
   }
 }
 
-/* ===== Attendees ===== */
+/* ===== 검색 UI ===== */
+.attendee-search {
+  display: grid;
+  gap: 8px;
+}
+
+.attendee-search .attendee-search-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mini-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #f6f7fb;
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.02s ease;
+}
+.mini-btn:hover {
+  background: #eef0f8;
+}
+.mini-btn:active {
+  transform: translateY(1px);
+}
+
+/* ===== 선택 칩 ===== */
+.selected-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 0 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.chip .chip-x {
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 14px;
+  padding: 0 0 0 2px;
+  color: #6b7280;
+}
+.chip .chip-x:hover {
+  color: #111827;
+}
+.chip-disabled {
+  opacity: 0.6;
+}
+
+/* 뱃지 */
+.badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+  background: #eef0f8;
+  color: #374151;
+}
+.badge-danger {
+  background: var(--danger-weak);
+  color: var(--danger);
+}
+
+/* ===== Attendees 리스트 ===== */
 .attendee-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -110,7 +196,7 @@ textarea:focus {
   overflow: auto;
 }
 
-/* 스크롤바 살짝 정리(지원 브라우저에서만 적용) */
+/* 스크롤바 정리 */
 .attendee-list::-webkit-scrollbar {
   height: 10px;
   width: 10px;
@@ -128,7 +214,7 @@ textarea:focus {
   border: 1px solid transparent;
   border-radius: 10px;
   background: #fff;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 .attendee-item:hover {
   background: #f7f8ff;
@@ -136,6 +222,22 @@ textarea:focus {
 }
 .attendee-item input[type='checkbox'] {
   transform: translateY(0.5px);
+}
+
+.attendee-item.disabled {
+  opacity: 0.55;
+  filter: grayscale(0.15);
+  cursor: not-allowed;
+}
+.attendee-item.disabled:hover {
+  background: #fff;
+  border-color: transparent;
+}
+
+.attendee-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ===== Actions ===== */
