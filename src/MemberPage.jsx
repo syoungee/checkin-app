@@ -1,7 +1,7 @@
 // src/pages/MemberPage.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, where } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import './MemberPage.css';
 
@@ -27,6 +27,22 @@ const STATUS_LABELS = {
   withdrawn: '탈퇴',
 };
 
+// YYYY-MM-DD
+const ymd = (date) => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+// 이번 달(로컬 기준) 시작/끝 YMD
+const getThisMonthRange = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // 말일
+  return { start: ymd(start), end: ymd(end) };
+};
+
 function MemberPage() {
   const navigate = useNavigate();
 
@@ -34,6 +50,10 @@ function MemberPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  // 이번 달 참여 횟수 맵: { [memberId]: number }
+  const [monthAttendCounts, setMonthAttendCounts] = useState({});
+  const [loadingMonthCount, setLoadingMonthCount] = useState(true);
 
   // 검색/정렬
   const [qText, setQText] = useState('');
@@ -67,8 +87,42 @@ function MemberPage() {
     setLoading(false);
   };
 
+  // 이번 달 참여 횟수 집계
+  const fetchThisMonthAttendance = async () => {
+    setLoadingMonthCount(true);
+    try {
+      const { start, end } = getThisMonthRange();
+      // events 컬렉션에서 이번 달 범위만
+      const evRef = collection(db, 'events');
+      const evSnap = await getDocs(query(evRef, where('date', '>=', start), where('date', '<=', end), orderBy('date'), orderBy('time')));
+
+      // memberId -> count
+      const counter = new Map();
+      evSnap.docs.forEach((d) => {
+        const ev = d.data();
+        const ids = Array.isArray(ev.attendeesIds) ? ev.attendeesIds : [];
+        ids.forEach((id) => {
+          if (!id) return;
+          counter.set(id, (counter.get(id) || 0) + 1);
+        });
+      });
+
+      // 객체로 변환
+      const obj = {};
+      for (const [mid, cnt] of counter.entries()) obj[mid] = cnt;
+      setMonthAttendCounts(obj);
+    } catch (e) {
+      console.error('이번 달 참여 횟수 로드 실패:', e);
+      setMonthAttendCounts({});
+    } finally {
+      setLoadingMonthCount(false);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
+    fetchThisMonthAttendance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e) => {
@@ -112,7 +166,10 @@ function MemberPage() {
         joinDate: '',
         gender: '',
       });
+
       await fetchMembers();
+      // 데이터 일관성 위해 재계산하려면 아래 주석 해제
+      // await fetchThisMonthAttendance();
     } catch (error) {
       console.error('등록 실패:', error);
       alert('등록에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -332,61 +389,72 @@ function MemberPage() {
         <div className="empty">검색/필터 결과가 없습니다.</div>
       ) : (
         <ul className="member-grid">
-          {viewMembers.map((m) => (
-            <li key={m.id} className="member-card clickable" onClick={() => navigate(`/member/${m.id}`)} title={`${m.name} 상세 보기`}>
-              <div className="mc-head">
-                <strong className="mc-name">{m.name}</strong>
+          {viewMembers.map((m) => {
+            const monthCnt = monthAttendCounts[m.id] || 0;
+            const monthText = `${monthCnt}회${monthCnt <= 1 ? ' ⚠️' : ''}`; // 0회 또는 1회면 경고 아이콘
+            return (
+              <li key={m.id} className="member-card clickable" onClick={() => navigate(`/member/${m.id}`)} title={`${m.name} 상세 보기`}>
+                <div className="mc-head">
+                  <strong className="mc-name">{m.name}</strong>
 
-                {/* 상태 뱃지 */}
-                <span className={`badge status-${m.status || 'active'}`}>{STATUS_LABELS[m.status] ?? '정상'}</span>
+                  {/* 상태 뱃지 */}
+                  <span className={`badge status-${m.status || 'active'}`}>{STATUS_LABELS[m.status] ?? '정상'}</span>
 
-                {m.activityArea && <span className="chip">{m.activityArea}</span>}
-                {m.residence && <span className="chip ghost">{m.residence}</span>}
+                  {m.activityArea && <span className="chip">{m.activityArea}</span>}
+                  {m.residence && <span className="chip ghost">{m.residence}</span>}
 
-                {/* 삭제 버튼: 부모 클릭 전파 방지 */}
-                <button
-                  type="button"
-                  className="icon-btn danger"
-                  aria-label={`${m.name} 삭제`}
-                  title="삭제"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(m.id, m.name);
-                  }}
-                  disabled={deletingId === m.id}
-                >
-                  {deletingId === m.id ? '삭제 중…' : '×'}
-                </button>
-              </div>
+                  {/* 삭제 버튼: 부모 클릭 전파 방지 */}
+                  <button
+                    type="button"
+                    className="icon-btn danger"
+                    aria-label={`${m.name} 삭제`}
+                    title="삭제"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(m.id, m.name);
+                    }}
+                    disabled={deletingId === m.id}
+                  >
+                    {deletingId === m.id ? '삭제 중…' : '×'}
+                  </button>
+                </div>
 
-              <div className="mc-row">
-                <span className="label">생일</span>
-                <span>{m.birthdate || '-'}</span>
-              </div>
-              <div className="mc-row">
-                <span className="label">입장일</span>
-                <span>{m.joinDate || '-'}</span>
-              </div>
-              <div className="mc-row">
-                <span className="label">전화</span>
-                <button
-                  type="button"
-                  className="linklike"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard?.writeText(formatPhoneKR(m.phone) || '');
-                  }}
-                  title="클립보드에 복사"
-                >
-                  {formatPhoneKR(m.phone) || '-'}
-                </button>
-              </div>
-              <div className="mc-row">
-                <span className="label">성별</span>
-                <span>{m.gender === 'male' ? '남성' : m.gender === 'female' ? '여성' : '-'}</span>
-              </div>
-            </li>
-          ))}
+                <div className="mc-row">
+                  <span className="label">생일</span>
+                  <span>{m.birthdate || '-'}</span>
+                </div>
+                <div className="mc-row">
+                  <span className="label">입장일</span>
+                  <span>{m.joinDate || '-'}</span>
+                </div>
+                <div className="mc-row">
+                  <span className="label">전화</span>
+                  <button
+                    type="button"
+                    className="linklike"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard?.writeText(formatPhoneKR(m.phone) || '');
+                    }}
+                    title="클립보드에 복사"
+                  >
+                    {formatPhoneKR(m.phone) || '-'}
+                  </button>
+                </div>
+
+                {/* ✅ 이번 달 참여 횟수 (0~1회면 ⚠️ 표시) */}
+                <div className="mc-row">
+                  <span className="label">참여</span>
+                  <span>{loadingMonthCount ? '계산 중…' : monthText}</span>
+                </div>
+
+                <div className="mc-row">
+                  <span className="label">성별</span>
+                  <span>{m.gender === 'male' ? '남성' : m.gender === 'female' ? '여성' : '-'}</span>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
