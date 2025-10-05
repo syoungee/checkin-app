@@ -232,15 +232,26 @@ function MemberPage() {
       return true;
     });
 
-    // 정렬
+    // 🔽 정렬: withdrawn(탈퇴)을 항상 맨 뒤로 보낸 다음, 기존 정렬 로직 적용
+    const isWithdrawn = (m) => (m.status ?? 'active') === 'withdrawn';
+
     if (sortKey === 'nameAsc') {
       const collator = new Intl.Collator('ko');
-      filtered.sort((a, b) => collator.compare(a.name || '', b.name || ''));
+      filtered.sort((a, b) => {
+        const aw = isWithdrawn(a) ? 1 : 0;
+        const bw = isWithdrawn(b) ? 1 : 0;
+        if (aw !== bw) return aw - bw; // withdrawn 뒤로
+        return collator.compare(a.name || '', b.name || '');
+      });
     } else {
       filtered.sort((a, b) => {
+        const aw = isWithdrawn(a) ? 1 : 0;
+        const bw = isWithdrawn(b) ? 1 : 0;
+        if (aw !== bw) return aw - bw; // withdrawn 뒤로
+
         const ad = a.joinDate || '';
         const bd = b.joinDate || '';
-        if (ad && bd) return bd.localeCompare(ad);
+        if (ad && bd) return bd.localeCompare(ad); // 가입일 최신순
         const at = a.createdAt?.seconds || 0;
         const bt = b.createdAt?.seconds || 0;
         return bt - at;
@@ -392,10 +403,19 @@ function MemberPage() {
           {viewMembers.map((m) => {
             const monthCnt = monthAttendCounts[m.id] || 0;
             const monthText = `${monthCnt}회${monthCnt <= 1 ? ' ⚠️' : ''}`; // 0회 또는 1회면 경고 아이콘
+            const isNew = (m.status ?? 'active') === 'new';
+
             return (
               <li key={m.id} className="member-card clickable" onClick={() => navigate(`/member/${m.id}`)} title={`${m.name} 상세 보기`}>
                 <div className="mc-head">
-                  <strong className="mc-name">{m.name}</strong>
+                  <strong className="mc-name">
+                    {m.name}
+                    {isNew && (
+                      <span className="new-icon" title="신규" aria-label="신규" style={{ marginLeft: 6 }}>
+                        🐹
+                      </span>
+                    )}
+                  </strong>
 
                   {/* 상태 뱃지 */}
                   <span className={`badge status-${m.status || 'active'}`}>{STATUS_LABELS[m.status] ?? '정상'}</span>
