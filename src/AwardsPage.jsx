@@ -58,13 +58,14 @@ export default function AwardsPage() {
   }, [norm]);
 
   // 집계 (정기모임 제외 로직 완전 제거)
-  const { attendRank, hostRank, maxEventHosts, maxEventSize } = useMemo(() => {
+  // ✅ 변경 포인트: '최대벙주상'을 최대 참석자 수 기준 내림차순 정렬하여 상위 5개 사용
+  const { attendRank, hostRank, topEventHosts, topMaxSize } = useMemo(() => {
     const attendMap = new Map(); // memberId -> attend count
     const hostMap = new Map(); // memberId -> host count
     const memberName = new Map(); // memberId -> name (denormalized)
 
-    let maxSize = 0;
-    let maxEvents = []; // events with max attendees
+    // 이벤트 요약 리스트 (최대벙주상 계산용)
+    const eventSummaries = [];
 
     for (const ev of events) {
       const ids = Array.isArray(ev.attendeesIds) ? ev.attendeesIds : [];
@@ -85,14 +86,18 @@ export default function AwardsPage() {
       // 호스트 카운트
       if (ev.hostId) hostMap.set(ev.hostId, (hostMap.get(ev.hostId) || 0) + 1);
 
-      // 최대 참석 이벤트 추적
+      // 최대벙주상: 이벤트 단위로 참석자 수 집계
       const size = ids.length;
-      if (size > maxSize) {
-        maxSize = size;
-        maxEvents = [ev];
-      } else if (size === maxSize) {
-        maxEvents.push(ev);
-      }
+      eventSummaries.push({
+        eventId: ev.id,
+        hostId: ev.hostId || '',
+        hostName: memberName.get(ev.hostId) || ev.host || '(무명)',
+        date: ev.date,
+        time: ev.time,
+        location: ev.location,
+        attendees: size,
+        // 동률일 때 최근 이벤트를 우선하고 싶다면 정렬 키에 date/time을 추가할 수 있음
+      });
     }
 
     const attendRankArr = [...attendMap.entries()]
@@ -101,26 +106,21 @@ export default function AwardsPage() {
 
     const hostRankArr = [...hostMap.entries()].map(([id, cnt]) => ({ id, name: memberName.get(id) || '(무명)', count: cnt })).sort((a, b) => b.count - a.count);
 
-    // 최대 참석 이벤트의 벙주들(동률이면 여러 명)
-    const maxHosts = [];
-    for (const ev of maxEvents) {
-      if (!ev.hostId) continue;
-      maxHosts.push({
-        hostId: ev.hostId,
-        hostName: memberName.get(ev.hostId) || ev.host || '(무명)',
-        eventId: ev.id,
-        date: ev.date,
-        time: ev.time,
-        location: ev.location,
-        attendees: Array.isArray(ev.attendeesNames) ? ev.attendeesNames.length : 0,
-      });
-    }
+    // 참석자 수 내림차순, 동률이면 날짜/시간 최신순(옵션)
+    eventSummaries.sort((a, b) => {
+      if (b.attendees !== a.attendees) return b.attendees - a.attendees;
+      // 아래 두 줄은 date/time이 문자열(YYYY-MM-DD, HH:mm)이라고 가정하고 최신순으로 정렬
+      if (b.date !== a.date) return (b.date || '').localeCompare(a.date || '');
+      return (b.time || '').localeCompare(a.time || '');
+    });
+
+    const maxSize = eventSummaries.length ? eventSummaries[0].attendees : 0;
 
     return {
       attendRank: attendRankArr,
       hostRank: hostRankArr,
-      maxEventHosts: maxHosts,
-      maxEventSize: maxSize,
+      topEventHosts: eventSummaries, // 전체를 보관하고 렌더링에서 상위 5개만 노출
+      topMaxSize: maxSize,
     };
   }, [events]);
 
@@ -128,6 +128,9 @@ export default function AwardsPage() {
   const endStr = norm?.end ?? '';
 
   const invalidRange = startInput && endInput && new Date(startInput).getTime() > new Date(endInput).getTime();
+
+  // 상위 노출 개수
+  const MAX_SHOW = 5;
 
   return (
     <div className="awards">
@@ -238,20 +241,20 @@ export default function AwardsPage() {
           )}
         </div>
 
-        {/* 최대벙주상 */}
+        {/* 최대벙주상 (참석자 수 상위 5개 이벤트) */}
         <div className="award">
           <div className="award-title">
-            🥇 최대벙주상 <small>(참석자 최다 벙의 벙주)</small>
+            🥇 최대벙주상 <small>(참석자 수 상위 5개 모임의 벙주)</small>
           </div>
-          {maxEventSize === 0 ? (
+          {topMaxSize === 0 ? (
             <div className="empty">기간 내 데이터가 없습니다.</div>
           ) : (
             <>
               <div className="hint">
-                가장 많은 참석자 수: <strong>{maxEventSize}명</strong>
+                가장 많은 참석자 수: <strong>{topMaxSize}명</strong>
               </div>
               <ul className="event-list">
-                {maxEventHosts.map((x) => (
+                {topEventHosts.slice(0, 5).map((x) => (
                   <li key={x.eventId} className="event-item">
                     <div className="e-line">
                       <span className="chip">벙주</span> <strong>{x.hostName}</strong>
