@@ -16,12 +16,17 @@
 /* Sizing tokens for calendar */
 .react-calendar {
   --abbr-size: 28px;
+
+  /* 타일 내부 여백: PC에서 배지 3줄까지 들어가도록 넉넉히 확보 */
   --tile-pad-y: 10px;
-  --tile-pad-b: 34px;
+  --tile-pad-b: 72px;
+
+  /* 배지 관련 토큰 */
   --badge-gap: 4px;
   --badge-fs: 11px;
   --badge-py: 2px;
   --badge-px: 6px;
+
   --active-border: 2px;
 }
 
@@ -41,6 +46,7 @@
     --badge-py: 2px;
     --badge-px: 6px;
   }
+  /* 모바일은 2개까지만 표시 (기존 동작 유지) */
   .ios-badges .ios-badge:nth-child(n + 3) {
     display: none;
   }
@@ -53,7 +59,7 @@
   }
   .react-calendar {
     --abbr-size: 30px;
-    --tile-pad-b: 36px;
+    --tile-pad-b: 76px; /* 큰 화면에선 살짝 더 확보 */
     --badge-fs: 12px;
   }
 }
@@ -144,7 +150,7 @@
   position: relative;
   transition: background 0.15s ease;
   min-height: calc(var(--abbr-size) + var(--tile-pad-y) + var(--tile-pad-b));
-  overflow: visible; /* 툴팁이 타일 밖으로 나와도 보이게 */
+  overflow: hidden; /* 내부 스크롤 영역을 타일 경계 안에 고정 */
 }
 .react-calendar__tile:enabled:hover {
   background: #f7f7f7;
@@ -184,7 +190,7 @@
   font-weight: 800;
 }
 
-/* In-tile badges */
+/* In-tile badges (PC: 스크롤 가능) */
 .ios-badges {
   position: absolute;
   left: 6px;
@@ -193,9 +199,26 @@
   display: flex;
   flex-direction: column;
   gap: var(--badge-gap);
-  pointer-events: none; /* 클릭 통과 */
   z-index: 0;
+
+  /* ✅ 타일 안에서 3줄까지만 보여주고, 초과는 스크롤 */
+  max-height: 68px; /* 3줄 기준(폰트/패딩 값과 맞춤) */
+  overflow-y: auto;
+  padding-right: 2px; /* 스크롤바로 내용 가려지지 않게 살짝 여유 */
 }
+
+/* 스크롤바(웹킷) - 얇게 */
+.ios-badges::-webkit-scrollbar {
+  width: 6px;
+}
+.ios-badges::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 6px;
+}
+.ios-badges::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .ios-badge {
   display: inline-flex;
   max-width: 100%;
@@ -209,7 +232,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  pointer-events: auto; /* 개별 배지는 hover 허용 */
+  pointer-events: auto; /* 배지 hover/스크롤 허용 */
 }
 .ios-badge.more {
   background: #eef2ff;
@@ -341,9 +364,27 @@
   background: #f5f5f7;
 }
 
-/* 모바일: 요일 헤더 숨김 */
 @media (max-width: 480px) {
   .react-calendar__month-view__weekdays {
     display: none;
+  }
+
+  .react-calendar {
+    --abbr-size: 26px;
+    --tile-pad-y: 8px;
+    /* 기존 44px → 64px: 3줄까지 셀 안에 보이도록 여유 확보 */
+    --tile-pad-b: 64px;
+    --badge-gap: 4px;
+    --badge-fs: 10px;
+    --badge-py: 2px;
+    --badge-px: 6px;
+  }
+
+  /* ✅ 모바일에서도 스크롤로 더 보기 */
+  .ios-badges {
+    max-height: 64px; /* 3줄 기준 높이 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
+    padding-right: 2px;
   }
 }

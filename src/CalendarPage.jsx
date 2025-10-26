@@ -14,6 +14,7 @@ function ymd(date) {
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
+
 function monthRange(date) {
   const y = date.getFullYear();
   const m = date.getMonth();
@@ -21,10 +22,12 @@ function monthRange(date) {
   const end = new Date(y, m + 1, 0);
   return { start: ymd(start), end: ymd(end) };
 }
+
 function labelOf(ev) {
   const txt = (ev.location || '').trim();
   return txt || '일정';
 }
+
 function useMedia(queryStr) {
   const getMatch = () => (window.matchMedia ? window.matchMedia(queryStr).matches : false);
   const [matches, setMatches] = React.useState(getMatch);
@@ -39,6 +42,7 @@ function useMedia(queryStr) {
   }, [queryStr]);
   return matches;
 }
+
 const includesCI = (source, needle) => {
   if (!needle) return true;
   const n = needle.toLowerCase().trim();
@@ -163,32 +167,24 @@ export default function CalendarPage() {
         prevLabel={null}
         next2Label={null}
         prev2Label={null}
-        /* 날짜 칸 아래 iOS 배지들 + hover 툴팁 */
+        /* 날짜 칸 아래 iOS 배지들 + hover 툴팁
+           └ PC: 3줄 높이까지만 보이도록(셀 내부 고정), 초과 시 스크롤 */
         tileContent={({ date, view }) => {
           if (view !== 'month') return null;
           const key = ymd(date);
           const dayEvents = eventsByDate[key] || [];
           if (!dayEvents.length) return null;
 
-          const shown = dayEvents.slice(0, 3);
-          const more = dayEvents.length - shown.length;
-
           return (
-            <div className="ios-badges">
-              {shown.map((ev) => {
+            <div className="ios-badges scrollable">
+              {dayEvents.map((ev) => {
                 const label = labelOf(ev);
                 return (
-                  <span
-                    key={ev.id}
-                    className="ios-badge tip"
-                    title={label} // 네이티브(백업)
-                    data-tip={label} // CSS 툴팁
-                  >
+                  <span key={ev.id} className="ios-badge tip" title={label} data-tip={label}>
                     {label}
                   </span>
                 );
               })}
-              {more > 0 && <span className="ios-badge more">+{more}</span>}
             </div>
           );
         }}
