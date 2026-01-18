@@ -402,7 +402,7 @@ function MemberPage() {
         <ul className="member-grid">
           {viewMembers.map((m) => {
             const monthCnt = monthAttendCounts[m.id] || 0;
-            const monthText = `${monthCnt}회${monthCnt <= 1 ? ' ⚠️' : ''}`; // 0회 또는 1회면 경고 아이콘
+            const monthText = `${monthCnt}회${monthCnt < 1 ? ' ⚠️' : ''}`; // 0회 또는 1회면 경고 아이콘
             const isNew = (m.status ?? 'active') === 'new';
 
             return (
