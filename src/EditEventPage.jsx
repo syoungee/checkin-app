@@ -110,15 +110,12 @@ export default function EditEventPage() {
   const onUpdate = async (e) => {
     e.preventDefault();
     if (!form.date) return alert('날짜를 입력하세요.');
-    if (!form.time) return alert('시간을 입력하세요.');
-    if (!form.location.trim()) return alert('장소를 입력하세요.');
-    if (!form.hostId) return alert('모임장을 선택하세요.');
     if (form.attendees.length === 0) return alert('참석자를 1명 이상 선택하세요.');
 
-    // 참석자에 host 자동 포함
-    const attendeesIds = Array.from(new Set([...form.attendees, form.hostId]));
+    // 참석자에 host 자동 포함 (모임장은 선택 입력)
+    const attendeesIds = Array.from(new Set([...form.attendees, ...(form.hostId ? [form.hostId] : [])]));
     const attendeesNames = attendeesIds.map((mid) => idToName.get(mid) || '');
-    const hostName = idToName.get(form.hostId) || '';
+    const hostName = form.hostId ? idToName.get(form.hostId) || '' : '';
 
     setSaving(true);
     try {
@@ -216,19 +213,19 @@ export default function EditEventPage() {
       <form onSubmit={onUpdate} className="form">
         <div className="row-two">
           <label className="field">
-            <span>날짜</span>
+            <span>날짜 <span className="required">*</span></span>
             <input type="date" name="date" value={form.date} onChange={handleChange} required />
           </label>
 
           <label className="field">
             <span>시간</span>
-            <input type="time" name="time" value={form.time} onChange={handleChange} required />
+            <input type="time" name="time" value={form.time} onChange={handleChange} />
           </label>
         </div>
 
         <label className="field">
           <span>장소</span>
-          <input type="text" name="location" placeholder="장소를 입력하세요" value={form.location} onChange={handleChange} required />
+          <input type="text" name="location" placeholder="장소를 입력하세요 (선택)" value={form.location} onChange={handleChange} />
         </label>
 
         {/* ✅ 이미지/인스타 URL 입력 */}
@@ -287,10 +284,8 @@ export default function EditEventPage() {
 
         <div className="field">
           <span>모임장(Host)</span>
-          <select name="hostId" value={form.hostId} onChange={handleChange} required>
-            <option value="" disabled>
-              모임장을 선택하세요
-            </option>
+          <select name="hostId" value={form.hostId} onChange={handleChange}>
+            <option value="">모임장 선택 안 함</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -301,7 +296,7 @@ export default function EditEventPage() {
         </div>
 
         <div className="field">
-          <span>참석자(Attendees)</span>
+          <span>참석자(Attendees) <span className="required">*</span></span>
           <div className="attendee-list">
             {members.map((m) => (
               <label key={m.id} className="attendee-item">
