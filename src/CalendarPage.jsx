@@ -155,6 +155,7 @@ export default function CalendarPage() {
       <Calendar
         onChange={setSelectedDate}
         value={selectedDate}
+        activeStartDate={activeMonthDate}
         calendarType="gregory"
         locale="ko-KR"
         onActiveStartDateChange={({ activeStartDate, view }) => {
