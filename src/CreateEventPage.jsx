@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from './firebase';
 import { collection, getDocs, query, orderBy, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
@@ -15,6 +15,9 @@ export default function CreateEventPage() {
 
   // 참석자 검색어
   const [attendeeQuery, setAttendeeQuery] = useState('');
+
+  const searchRef = useRef(null);
+  const [suggestionStyle, setSuggestionStyle] = useState(null);
 
   // 폼 상태
   const [form, setForm] = useState({
@@ -88,13 +91,56 @@ export default function CreateEventPage() {
     });
   }, [members, attendeeQuery]);
 
+  // 검색에서 바로 추가하기: 입력에서 Enter 시 첫 결과를 추가하거나
+  // 제안 아이템 클릭 시 해당 멤버를 참석자에 추가
+  const addAttendeeFromSearch = (id) => {
+    if (!members.find((m) => m.id === id)) return;
+    setForm((prev) => {
+      if (prev.attendees.includes(id)) return prev;
+      return { ...prev, attendees: [...prev.attendees, id] };
+    });
+    setAttendeeQuery('');
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredMembers.length > 0) {
+        addAttendeeFromSearch(filteredMembers[0].id);
+      }
+    }
+  };
+
+  // 제안 박스를 뷰포트에 맞게 고정 위치로 렌더링하도록 위치 계산
+  useEffect(() => {
+    const update = () => {
+      const el = searchRef.current;
+      if (!el) return setSuggestionStyle(null);
+      const r = el.getBoundingClientRect();
+      setSuggestionStyle({
+        position: 'fixed',
+        left: `${r.left + window.scrollX}px`,
+        top: `${r.bottom + 8 + window.scrollY}px`,
+        width: `${r.width}px`,
+        maxHeight: '50vh',
+      });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [attendeeQuery, loading]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     if (name === 'hostId') {
       const next = value;
-      // members에는 활동 멤버만 있으므로 보통 필요 없지만, 방어적으로 검증
-      if (!members.find((m) => m.id === next)) {
+      // 모임장은 선택 입력: 빈 값(미선택) 허용
+      if (next && !members.find((m) => m.id === next)) {
         alert('선택할 수 없는 모임장입니다.');
         return;
       }
@@ -142,15 +188,12 @@ export default function CreateEventPage() {
     if (saving) return;
 
     if (!form.date) return alert('날짜를 입력하세요.');
-    if (!form.time) return alert('시간을 입력하세요.');
-    if (!form.location.trim()) return alert('장소를 입력하세요.');
-    if (!form.hostId) return alert('모임장을 선택하세요.');
     if (form.attendees.length === 0) return alert('참석자를 1명 이상 선택하세요.');
 
     setSaving(true);
 
-    // 모임장이 참석자에 없으면 추가
-    const attendeesIdsRaw = Array.from(new Set([...form.attendees, form.hostId]));
+    // 모임장이 참석자에 없으면 추가 (모임장은 선택 입력)
+    const attendeesIdsRaw = Array.from(new Set([...form.attendees, ...(form.hostId ? [form.hostId] : [])]));
     // 활동 멤버만 유지(이론상 모두 활동 멤버)
     const activeIds = new Set(members.map((m) => m.id));
     const attendeesIds = attendeesIdsRaw.filter((id) => activeIds.has(id));
@@ -161,7 +204,7 @@ export default function CreateEventPage() {
     }
 
     const attendeesNames = attendeesIds.map((id) => idToName.get(id) || '');
-    const hostName = idToName.get(form.hostId) || '';
+    const hostName = form.hostId ? idToName.get(form.hostId) || '' : '';
 
     try {
       const batch = writeBatch(db);
@@ -185,9 +228,11 @@ export default function CreateEventPage() {
         batch.set(mRef, { attendCount: increment(1) }, { merge: true });
       });
 
-      // 3) 모임장의 hostCount +1
-      const hostRef = doc(db, 'members', form.hostId);
-      batch.set(hostRef, { hostCount: increment(1) }, { merge: true });
+      // 3) 모임장의 hostCount +1 (모임장이 선택된 경우에만)
+      if (form.hostId) {
+        const hostRef = doc(db, 'members', form.hostId);
+        batch.set(hostRef, { hostCount: increment(1) }, { merge: true });
+      }
 
       // 4) 커밋
       await batch.commit();
@@ -210,26 +255,24 @@ export default function CreateEventPage() {
 
       <form onSubmit={handleSubmit} className="form">
         <label className="field">
-          <span>날짜</span>
+          <span>날짜 <span className="required">*</span></span>
           <input type="date" name="date" value={form.date} onChange={handleChange} required />
         </label>
 
         <label className="field">
           <span>시간</span>
-          <input type="time" name="time" value={form.time} onChange={handleChange} required />
+          <input type="time" name="time" value={form.time} onChange={handleChange} />
         </label>
 
         <label className="field">
           <span>장소</span>
-          <input type="text" name="location" placeholder="장소를 입력하세요" value={form.location} onChange={handleChange} required />
+          <input type="text" name="location" placeholder="장소를 입력하세요 (선택)" value={form.location} onChange={handleChange} />
         </label>
 
         <div className="field">
           <span>모임장(Host)</span>
-          <select name="hostId" value={form.hostId} onChange={handleChange} required>
-            <option value="" disabled>
-              모임장을 선택하세요
-            </option>
+          <select name="hostId" value={form.hostId} onChange={handleChange}>
+            <option value="">모임장 선택 안 함</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -240,11 +283,17 @@ export default function CreateEventPage() {
 
         {/* 참석자 검색 + 칩 + 체크박스 목록 */}
         <div className="field">
-          <span>참석자(Attendees)</span>
+          <span>참석자(Attendees) <span className="required">*</span></span>
 
           {/* 검색 UI */}
-          <div className="attendee-search">
-            <input type="text" placeholder="이름으로 검색" value={attendeeQuery} onChange={(e) => setAttendeeQuery(e.target.value)} />
+          <div className="attendee-search" ref={searchRef}>
+            <input
+              type="text"
+              placeholder="이름, 별명, 전화번호로 검색 후 Enter로 빠르게 추가"
+              value={attendeeQuery}
+              onChange={(e) => setAttendeeQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+            />
             <div className="attendee-search-actions">
               <button type="button" onClick={selectAllFiltered} className="mini-btn">
                 검색 결과 전체 선택
@@ -253,6 +302,20 @@ export default function CreateEventPage() {
                 검색 결과 전체 해제
               </button>
             </div>
+            {/* 제안 목록 (검색어가 있을 때 상위 결과 노출) */}
+            {attendeeQuery.trim() && !loading && (
+              <div className="suggestions" role="list" style={suggestionStyle}>
+                {filteredMembers.length === 0 ? (
+                  <div className="suggestion-empty">검색 결과가 없습니다.</div>
+                ) : (
+                  filteredMembers.map((m) => (
+                    <button key={m.id} type="button" className="suggestion-item" onClick={() => addAttendeeFromSearch(m.id)}>
+                      {m.name} {m.nickname ? `(${m.nickname})` : ''} {m.phone ? `· ${m.phone}` : ''}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* 선택된 멤버 칩 */}

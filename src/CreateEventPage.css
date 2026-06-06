@@ -60,6 +60,12 @@ h2 {
   color: var(--text);
 }
 
+/* 필수 입력 표시 */
+.required {
+  color: #e03131;
+  font-weight: 700;
+}
+
 /* 통일된 인풋 스타일 */
 input[type='text'],
 input[type='date'],
@@ -104,6 +110,51 @@ textarea:focus {
 .attendee-search {
   display: grid;
   gap: 8px;
+}
+
+.attendee-search {
+  position: relative;
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(20, 30, 80, 0.08);
+}
+.suggestion-item {
+  text-align: left;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.suggestion-item:hover {
+  background: #f3f5ff;
+}
+.suggestion-empty {
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .attendee-search .attendee-search-actions {
