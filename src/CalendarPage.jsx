@@ -28,6 +28,11 @@ function labelOf(ev) {
   return txt || '일정';
 }
 
+// 탈퇴 멤버 판별 (생일 표시에서 제외)
+const normalizeStatus = (v) => (v ?? '').toString().trim().toLowerCase();
+const WITHDRAWN_SET = new Set(['탈퇴', 'withdrawn', 'inactive', '퇴회'].map(normalizeStatus));
+const isWithdrawnMember = (m) => WITHDRAWN_SET.has(normalizeStatus(m?.status));
+
 function useMedia(queryStr) {
   const getMatch = () => (window.matchMedia ? window.matchMedia(queryStr).matches : false);
   const [matches, setMatches] = React.useState(getMatch);
@@ -65,6 +70,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeMonthDate, setActiveMonthDate] = useState(new Date());
   const [events, setEvents] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // 🔎 검색 필터 (단일 날짜)
@@ -94,12 +100,36 @@ export default function CalendarPage() {
     loadEventsForMonth(activeMonthDate);
   }, [activeMonthDate, loadEventsForMonth]);
 
+  // 멤버 1회 로드 (생일 표시용)
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, 'members'));
+        setMembers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (e) {
+        console.error('멤버 로드 실패', e);
+      }
+    })();
+  }, []);
+
   // 날짜별 그룹핑
   const eventsByDate = useMemo(() => {
     const map = {};
     for (const ev of events) (map[ev.date] ||= []).push(ev);
     return map;
   }, [events]);
+
+  // 생일 맵: 'MM-DD' -> [이름...] (연도 무관, 탈퇴자 제외)
+  const birthdaysByMD = useMemo(() => {
+    const map = {};
+    for (const m of members) {
+      if (isWithdrawnMember(m)) continue;
+      const md = (m.birthdate || '').slice(5, 10); // 'YYYY-MM-DD' -> 'MM-DD'
+      if (!/^\d{2}-\d{2}$/.test(md)) continue;
+      (map[md] ||= []).push(m.name || '이름없음');
+    }
+    return map;
+  }, [members]);
 
   // 달 이동
   const goPrevMonth = () => setActiveMonthDate(new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth() - 1, 1));
@@ -174,7 +204,8 @@ export default function CalendarPage() {
           if (view !== 'month') return null;
           const key = ymd(date);
           const dayEvents = eventsByDate[key] || [];
-          if (!dayEvents.length) return null;
+          const birthdays = birthdaysByMD[key.slice(5, 10)] || [];
+          if (!dayEvents.length && !birthdays.length) return null;
 
           return (
             <div className="ios-badges scrollable">
@@ -186,13 +217,22 @@ export default function CalendarPage() {
                   </span>
                 );
               })}
+              {birthdays.map((name, i) => {
+                const label = `${name} 생일🍰💕`;
+                return (
+                  <span key={`bd-${key}-${i}`} className="ios-badge birthday tip" title={label} data-tip={label}>
+                    {label}
+                  </span>
+                );
+              })}
             </div>
           );
         }}
         tileClassName={({ date, view }) => {
           if (view !== 'month') return '';
           const key = ymd(date);
-          return eventsByDate[key]?.length ? 'has-events' : '';
+          const hasBirthday = (birthdaysByMD[key.slice(5, 10)] || []).length > 0;
+          return eventsByDate[key]?.length || hasBirthday ? 'has-events' : '';
         }}
       />
 

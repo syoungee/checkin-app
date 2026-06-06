@@ -240,6 +240,13 @@
   border-color: #e0e7ff;
 }
 
+/* 생일 배지: 일정과 다른 색(라벤더/퍼플) */
+.ios-badge.birthday {
+  background: #f1e8ff;
+  color: #7c3aed;
+  border-color: #e3d4ff;
+}
+
 /* ----- 배지 Hover 툴팁 ----- */
 .ios-badge.tip {
   position: relative;
